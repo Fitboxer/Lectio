@@ -1,0 +1,118 @@
+<section class="page">
+
+  <!-- TARJETA DE BUSCADOR / FILTROS -->
+  <div class="search-bar-card">
+    <!-- Línea superior: buscador + iconos -->
+    <div class="search-top">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar libros..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="aplicarFiltros()" />
+
+      <!-- Botón refrescar -->
+      <button class="icon-button" title="Recargar lista" (click)="cargarLibros()">
+        ⟳
+      </button>
+    </div>
+
+    <!-- Línea inferior: filtros + botón sorprender -->
+    <div class="search-filters">
+      <label>
+        <span>Género</span>
+        <select [(ngModel)]="selectedGenero" (ngModelChange)="aplicarFiltros()">
+          <option *ngFor="let g of generosDisponibles" [ngValue]="g">
+            {{ g }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Año</span>
+        <select [(ngModel)]="selectedAnio" (ngModelChange)="aplicarFiltros()">
+          <option *ngFor="let a of aniosDisponibles" [ngValue]="a">
+            {{ a }}
+          </option>
+        </select>
+      </label>
+
+      <button class="btn-random" type="button" (click)="sorprenderme()">
+        Sorpréndeme
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <ng-container *ngIf="!cargando; else cargandoTpl">
+
+    <p *ngIf="errorMsg" class="estado-texto">{{ errorMsg }}</p>
+
+    <!-- GRID DE LIBROS -->
+    <div class="libros-grid" *ngIf="librosFiltrados.length > 0; else sinLibrosTpl">
+      <article
+        class="libro-card"
+        *ngFor="let libro of librosPagina"
+        (click)="verDetalle(libro.id)">
+
+        <!-- Portada del libro -->
+        <div class="libro-cover">
+          <img
+            class="libro-img"
+            [src]="libro.imagen || 'assets/book-placeholder.jpg'"
+            [alt]="libro.titulo"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            (error)="onImgError($event)" />
+        </div>
+
+        <!-- Información -->
+        <div class="libro-info">
+          <h3>{{ libro.titulo }}</h3>
+          <p class="autor">
+            {{ autoresToString(libro) }}
+          </p>
+          <p class="anio" *ngIf="libro.anioPublicacion">
+            Año: {{ libro.anioPublicacion }}
+          </p>
+        </div>
+
+      </article>
+    </div>
+
+    <!-- PAGINACIÓN -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="page-btn"
+        (click)="cambiarPagina(currentPage - 1)"
+        [disabled]="currentPage === 1">
+        Anterior
+      </button>
+
+      <button
+        class="page-btn"
+        *ngFor="let p of paginas"
+        (click)="cambiarPagina(p)"
+        [class.active]="p === currentPage">
+        {{ p }}
+      </button>
+
+      <button
+        class="page-btn"
+        (click)="cambiarPagina(currentPage + 1)"
+        [disabled]="currentPage === totalPages">
+        Siguiente
+      </button>
+    </div>
+
+  </ng-container>
+
+  <ng-template #cargandoTpl>
+    <p class="estado-texto">Cargando libros...</p>
+  </ng-template>
+
+  <ng-template #sinLibrosTpl>
+    <p class="estado-texto">No hay libros que coincidan con la búsqueda.</p>
+  </ng-template>
+
+</section>

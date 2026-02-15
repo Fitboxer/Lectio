@@ -1,0 +1,120 @@
+<!-- biblioteca.component.html - Versión final corregida -->
+<section class="biblioteca-page">
+
+  <!-- Cabecera tipo prototipo -->
+  <div class="header">
+    <div class="header-pill">
+      <span class="header-pill-text">Mi biblioteca</span>
+    </div>
+  </div>
+
+  <!-- Tarjeta perfil -->
+  <div class="profile-card">
+    <div class="avatar">
+      <span class="avatar-icon">👤</span>
+    </div>
+
+    <div class="profile-info">
+      <div class="username">
+        {{ authService.getUsername() || 'Usuario' }}
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Libros</div>
+          <div class="stat-value">{{ totalLibros }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-actions">
+      <button class="logout-btn" type="button" (click)="onLogout()">
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros tipo “píldoras” -->
+  <div class="filters">
+    <button class="chip" (click)="estadoActivo = 'TODOS'" [class.active]="estadoActivo === 'TODOS'">
+      Todos
+    </button>
+    <button class="chip" (click)="estadoActivo = 'FAVORITO'" [class.active]="estadoActivo === 'FAVORITO'">
+      Favoritos
+    </button>
+    <button class="chip" (click)="estadoActivo = 'LEYENDO'" [class.active]="estadoActivo === 'LEYENDO'">
+      Leyendo
+    </button>
+    <button class="chip" (click)="estadoActivo = 'PENDIENTE'" [class.active]="estadoActivo === 'PENDIENTE'">
+      Pendientes
+    </button>
+    <button class="chip" (click)="estadoActivo = 'ABANDONADO'" [class.active]="estadoActivo === 'ABANDONADO'">
+      Abandonados
+    </button>
+    <button class="chip" (click)="estadoActivo = 'LEIDO'" [class.active]="estadoActivo === 'LEIDO'">
+      Completados
+    </button>
+  </div>
+
+  <!-- Contenido -->
+  <div class="panel">
+    <ng-container *ngIf="estadoActivo === 'TODOS'; else modoUnico">
+      <div class="group" *ngFor="let sec of seccionesOrdenadas">
+        <div class="state-title">{{ sec.label }}</div>
+
+        <div class="libros-grid" *ngIf="sec.libros.length; else vacioGrupo">
+          <div class="libro-card" *ngFor="let libro of sec.libros" (click)="verDetalle(libro.id)">
+            <!-- ✅ Usar getPortadaUrl() para mantener consistencia -->
+            <div class="libro-portada-container">
+              <img *ngIf="getPortadaUrl(libro)" 
+                   [src]="getPortadaUrl(libro)" 
+                   [alt]="libro.titulo"
+                   class="libro-portada"
+                   loading="lazy"
+                   (error)="onImgError($event)">
+              <div *ngIf="!getPortadaUrl(libro)" class="portada-placeholder">
+                <span>📚</span>
+                <small>Sin portada</small>
+              </div>
+            </div>
+            <div class="libro-title">{{ libro?.titulo || 'Sin título' }}</div>
+            <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
+          </div>
+        </div>
+
+        <ng-template #vacioGrupo>
+          <div class="empty">No tienes libros en este estado todavía.</div>
+        </ng-template>
+      </div>
+    </ng-container>
+
+    <ng-template #modoUnico>
+      <div class="state-title">
+        {{ estadoActivo === 'LEIDO' ? 'Completados' : (estadoActivo | titlecase) }}
+      </div>
+
+      <div class="libros-grid" *ngIf="librosPorEstado[estadoSeleccionado]?.length; else vacio">
+        <div class="libro-card" *ngFor="let libro of librosPorEstado[estadoSeleccionado]" (click)="verDetalle(libro.id)">
+          <!-- ✅ Usar el mismo método getPortadaUrl() -->
+          <div class="libro-portada-container">
+            <img *ngIf="getPortadaUrl(libro)" 
+                 [src]="getPortadaUrl(libro)" 
+                 [alt]="libro.titulo"
+                 class="libro-portada"
+                 loading="lazy"
+                 (error)="onImgError($event)">
+            <div *ngIf="!getPortadaUrl(libro)" class="portada-placeholder">
+              <span>📚</span>
+              <small>Sin portada</small>
+            </div>
+          </div>
+          <div class="libro-title">{{ libro?.titulo || 'Sin título' }}</div>
+          <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
+        </div>
+      </div>
+
+      <ng-template #vacio>
+        <div class="empty">No tienes libros en este estado todavía.</div>
+      </ng-template>
+    </ng-template>
+  </div>
+</section>

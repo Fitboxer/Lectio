@@ -1,0 +1,104 @@
+<section class="detalle-page">
+
+  <button class="btn-back" (click)="volver()">← Volver</button>
+
+  <p *ngIf="cargando" class="estado-texto">Cargando...</p>
+  <p *ngIf="!cargando && error" class="estado-texto">{{ error }}</p>
+
+  <ng-container *ngIf="!cargando && libro">
+
+    <div class="card">
+
+      <!-- Columna izquierda: portada + botones -->
+      <aside class="left">
+        <div class="cover-container">
+          <div class="cover" [class.no-cover]="!libro.imagen">
+            <img *ngIf="libro.imagen" 
+                 [src]="libro.imagen" 
+                 [alt]="libro.titulo"
+                 (error)="onImgError($event)"
+                 loading="lazy"
+                 class="cover-img">
+            <div *ngIf="!libro.imagen" class="cover-fallback">
+              <span>📚</span>
+              <p>Sin portada</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- BARRA DE ESTADOS -->
+        <div class="estado-bar" *ngIf="authService.isLoggedIn()">
+          <button class="estado-btn" 
+                  [class.active]="estadoActual === 'Favorito'"
+                  (click)="setEstado('FAVORITO')">
+            <i class="fa-solid fa-star"></i>
+          </button>
+          <button class="estado-btn" 
+                  [class.active]="estadoActual === 'Leyendo'"
+                  (click)="setEstado('LEYENDO')">
+            <i class="fa-solid fa-book-open"></i>
+          </button>
+          <button class="estado-btn" 
+                  [class.active]="estadoActual === 'Pendiente'"
+                  (click)="setEstado('PENDIENTE')">
+            <i class="fa-solid fa-clock"></i>
+          </button>
+          <button class="estado-btn" 
+                  [class.active]="estadoActual === 'Abandonado'"
+                  (click)="setEstado('ABANDONADO')">
+            <i class="fa-solid fa-ban"></i>
+          </button>
+          <button class="estado-btn" 
+                  [class.active]="estadoActual === 'Terminado'"
+                  (click)="setEstado('LEIDO')">
+            <i class="fa-solid fa-check"></i>
+          </button>
+        </div>
+
+        <p class="estado-texto" *ngIf="!authService.isLoggedIn()">
+          Inicia sesión para guardar este libro en tu biblioteca.
+        </p>
+      </aside>
+
+      <!-- Columna derecha: info -->
+      <main class="right">
+        <h1 class="title">{{ libro.titulo }}</h1>
+
+        <div class="meta">
+          <div class="meta-row">
+            <span class="k">Autor:</span>
+            <span class="v">{{ autoresToString(libro) }}</span>
+          </div>
+          <div class="meta-row" *ngIf="libro.editorial?.nombre">
+            <span class="k">Editorial:</span>
+            <span class="v">{{ libro.editorial?.nombre }}</span>
+          </div>
+          <div class="meta-row" *ngIf="libro.anioPublicacion">
+            <span class="k">Año:</span>
+            <span class="v">{{ libro.anioPublicacion }}</span>
+          </div>
+        </div>
+
+        <!-- Géneros como chips -->
+        <div class="chips" *ngIf="libro.generos?.length; else sinGeneros">
+          <span class="chip" *ngFor="let g of libro.generos">{{ g.nombre }}</span>
+        </div>
+        <ng-template #sinGeneros>
+          <div class="chips">
+            <span class="chip muted">Sin géneros</span>
+          </div>
+        </ng-template>
+
+        <!-- Sinopsis (HTML) -->
+        <section class="box">
+          <div class="box-title">Sinopsis</div>
+          <div class="sinopsis" [innerHTML]="sinopsisHtml"></div>
+        </section>
+
+      </main>
+
+    </div>
+
+  </ng-container>
+
+</section>

@@ -1,0 +1,49 @@
+<section class="admin-page" *ngIf="esAdminLogueado(); else noAdminTpl">
+
+  <h1>Administración de usuarios</h1>
+
+  <p *ngIf="cargando" class="estado-texto">Cargando usuarios...</p>
+  <p *ngIf="error" class="estado-texto error">{{ error }}</p>
+
+  <table class="admin-table" *ngIf="!cargando && usuarios.length">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Usuario</th>
+        <th>Email</th>
+        <th>Roles</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of usuarios">
+        <td>{{ u.id }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.roles.join(', ') }}</td>
+        <td>
+          <span [class.badge-activo]="u.activo" [class.badge-baneado]="!u.activo">
+            {{ u.activo ? 'Activo' : 'Baneado' }}
+          </span>
+        </td>
+        <td>
+          <button class="btn-ban" (click)="toggleBan(u)">
+            {{ u.activo ? 'Banear' : 'Desbanear' }}
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!cargando && !usuarios.length && !error" class="estado-texto">
+    No hay usuarios registrados todavía.
+  </p>
+
+</section>
+
+<ng-template #noAdminTpl>
+  <p class="estado-texto">
+    No tiene permisos para acceder a esta sección.
+  </p>
+</ng-template>

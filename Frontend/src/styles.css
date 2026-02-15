@@ -1,0 +1,46 @@
+/* Estilos globales */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(124,77,255,.16), transparent 60%),
+    radial-gradient(1000px 500px at 90% 0%,  rgba(255,61,133,.10), transparent 60%),
+    #0e0d1a;
+  color: #fff;
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Panel desplegable del mat-select */
+.mat-mdc-select-panel {
+  background: rgba(14, 13, 26, 0.96) !important;   /* fondo oscuro */
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+/* Texto de las opciones */
+.mat-mdc-option {
+  color: #ffffff !important;
+}
+
+/* Texto de la opción seleccionada */
+.mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+/* Hover de opción */
+.mat-mdc-option:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Opciones deshabilitadas (si las usas) */
+.mat-mdc-option.mdc-list-item--disabled .mdc-list-item__primary-text {
+  color: rgba(255, 255, 255, 0.35) !important;
+}

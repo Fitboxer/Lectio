@@ -1,0 +1,310 @@
+.biblioteca-page{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+}
+
+/* Cabecera tipo barra/píldora (prototipo) */
+.header{
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 18px;
+}
+
+.header-pill{
+  width: min(820px, 100%);
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(240,240,245,0.10);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+}
+
+.header-pill-text{
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* Tarjeta de perfil */
+.profile-card{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 18px;
+  border-radius: 20px;
+  background: rgba(20, 20, 35, 0.55);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+}
+
+.avatar{
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background: rgba(170, 145, 255, 0.20);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: grid;
+  place-items: center;
+}
+
+.avatar-icon{
+  font-size: 38px;
+  opacity: 0.9;
+}
+
+.profile-info{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 200px;
+}
+
+.username{
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stats{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat{
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(245,245,250,0.10);
+  border: 1px solid rgba(255,255,255,0.10);
+  width: 88px;
+}
+
+.stat-label{
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.stat-value{
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Chips (filtros) */
+.filters{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0 14px;
+}
+
+.chip{
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(245,245,250,0.08);
+  color: rgba(255,255,255,0.92);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.chip:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.28);
+}
+
+.chip.active{
+  background: rgba(154, 116, 255, 0.35);
+  border-color: rgba(170, 145, 255, 0.65);
+}
+
+/* Panel inferior donde van los libros */
+.panel{
+  margin-top: 8px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(20, 20, 35, 0.45);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+}
+
+.state-title{
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+
+/* ✅ Separación entre grupos cuando estadoActivo = 'TODOS' */
+.group{
+  margin-bottom: 18px;
+}
+
+.group:last-child{
+  margin-bottom: 0;
+}
+
+/* 📚 GRID DE LIBROS - MÁS COMPACTO (4 columnas) */
+.libros-grid{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* 📖 TARJETA DE LIBRO - MÁS PEQUEÑA */
+.libro-card{
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(245,245,250,0.08);
+  border: 1px solid rgba(255,255,255,0.10);
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.libro-card:hover{
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(245,245,250,0.11);
+}
+
+/* 📝 TÍTULO DEL LIBRO - MÁS PEQUEÑO */
+.libro-title{
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+  margin-bottom: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ✍️ AUTOR - MÁS PEQUEÑO */
+.libro-autor{
+  font-size: 12px;
+  opacity: 0.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 🖼️ AÑADIR PORTADA (OPCIONAL) */
+.libro-portada{
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.05);
+}
+
+/* Estado vacío */
+.empty{
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(245,245,250,0.06);
+  border: 1px dashed rgba(255,255,255,0.18);
+  opacity: 0.9;
+  font-size: 14px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+/* Responsive */
+@media (max-width: 920px){
+  .libros-grid{ 
+    grid-template-columns: repeat(3, minmax(0, 1fr)); 
+  }
+}
+
+@media (max-width: 720px){
+  .libros-grid{ 
+    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+  }
+}
+
+@media (max-width: 560px){
+  .libros-grid{ 
+    grid-template-columns: 1fr; 
+  }
+  .profile-card{ 
+    align-items: flex-start; 
+    flex-wrap: wrap;
+  }
+}
+
+/* Que el contenido del perfil se reparta bien en horizontal */
+.profile-card{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Que el bloque central crezca y empuje el botón hacia la derecha */
+.profile-info{
+  flex: 1;
+}
+
+/* Contenedor del botón en el lado derecho */
+.profile-actions{
+  margin-left: auto;
+}
+
+/* Estilo del botón de logout */
+.logout-btn{
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.1s ease, box-shadow 0.18s ease;
+}
+
+.logout-btn:hover{
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+
+.libro-portada-container {
+  width: 100%;
+  aspect-ratio: 2/3;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.libro-portada {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portada-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  opacity: 0.5;
+  background: rgba(255,255,255,0.03);
+}

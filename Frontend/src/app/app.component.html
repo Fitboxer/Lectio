@@ -1,0 +1,45 @@
+<!-- Canvas de partículas -->
+<canvas #cnv class="bg-canvas" aria-hidden="true"></canvas>
+
+<div class="app-layout">
+  <!-- NAVBAR FULL WIDTH -->
+  <header class="app-header">
+    <nav class="navbar">
+      <!-- IZQUIERDA -->
+      <div routerLink="/" class="navbar-left">
+        <span class="app-logo">Lectio</span>
+      </div>
+
+      <!-- DERECHA -->
+      <div class="navbar-right">
+        <a
+          *ngIf="authService.isAdmin()"
+          routerLink="/admin/usuarios"
+          class="header-admin-link">
+          Panel admin
+        </a>
+
+        <button class="profile-btn" type="button" (click)="onProfileClick()">
+          <span class="profile-icon">👤</span>
+
+          <span class="profile-text" *ngIf="isLoggedIn; else guest">
+            {{ authService.getUsername() || 'Usuario' }}
+          </span>
+
+          <ng-template #guest>
+            <span class="profile-text">Iniciar sesión / Registrarse</span>
+          </ng-template>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- CONTENIDO -->
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="app-footer">
+    <span>© {{ currentYear }} Lectio • Proyecto DAM</span>
+  </footer>
+</div>

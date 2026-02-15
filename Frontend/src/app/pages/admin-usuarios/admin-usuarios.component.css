@@ -1,0 +1,76 @@
+.admin-page{
+  max-width: 1100px;
+  margin: 32px auto;
+  padding: 24px 28px;
+  border-radius: 24px;
+  background: rgba(15, 10, 30, 0.9);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65);
+}
+
+.admin-page h1{
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+
+.estado-texto{
+  margin-top: 16px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.estado-texto.error{
+  color: #ff7b7b;
+}
+
+.admin-table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td{
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-table th{
+  text-align: left;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.badge-activo,
+.badge-baneado{
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.badge-activo{
+  background: rgba(120, 230, 150, 0.18);
+  color: #8df0a6;
+}
+
+.badge-baneado{
+  background: rgba(255, 140, 140, 0.18);
+  color: #ff9e9e;
+}
+
+.btn-ban{
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-ban:hover{
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
