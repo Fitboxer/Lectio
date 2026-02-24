@@ -57,17 +57,18 @@
 
   <!-- Contenido -->
   <div class="panel">
+    <!-- ✅ CORREGIDO: Usar estadoActivo en lugar de estadoSeleccionado -->
     <ng-container *ngIf="estadoActivo === 'TODOS'; else modoUnico">
       <div class="group" *ngFor="let sec of seccionesOrdenadas">
         <div class="state-title">{{ sec.label }}</div>
 
         <div class="libros-grid" *ngIf="sec.libros.length; else vacioGrupo">
-          <div class="libro-card" *ngFor="let libro of sec.libros" (click)="verDetalle(libro.id)">
+          <div class="libro-card" *ngFor="let libro of sec.libros" (click)="verDetalle(libro.libroId)">
             <!-- ✅ Usar getPortadaUrl() para mantener consistencia -->
             <div class="libro-portada-container">
               <img *ngIf="getPortadaUrl(libro)" 
                    [src]="getPortadaUrl(libro)" 
-                   [alt]="libro.titulo"
+                   [alt]="getTitulo(libro)"
                    class="libro-portada"
                    loading="lazy"
                    (error)="onImgError($event)">
@@ -76,7 +77,7 @@
                 <small>Sin portada</small>
               </div>
             </div>
-            <div class="libro-title">{{ libro?.titulo || 'Sin título' }}</div>
+            <div class="libro-title">{{ getTitulo(libro) }}</div>
             <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
           </div>
         </div>
@@ -92,13 +93,14 @@
         {{ estadoActivo === 'LEIDO' ? 'Completados' : (estadoActivo | titlecase) }}
       </div>
 
-      <div class="libros-grid" *ngIf="librosPorEstado[estadoSeleccionado]?.length; else vacio">
-        <div class="libro-card" *ngFor="let libro of librosPorEstado[estadoSeleccionado]" (click)="verDetalle(libro.id)">
+      <!-- ✅ CORREGIDO: Usar estadoActivo en lugar de estadoSeleccionado -->
+      <div class="libros-grid" *ngIf="librosPorEstado[estadoActivo]?.length; else vacio">
+        <div class="libro-card" *ngFor="let libro of librosPorEstado[estadoActivo]" (click)="verDetalle(libro.libroId)">
           <!-- ✅ Usar el mismo método getPortadaUrl() -->
           <div class="libro-portada-container">
             <img *ngIf="getPortadaUrl(libro)" 
                  [src]="getPortadaUrl(libro)" 
-                 [alt]="libro.titulo"
+                 [alt]="getTitulo(libro)"
                  class="libro-portada"
                  loading="lazy"
                  (error)="onImgError($event)">
@@ -107,7 +109,7 @@
               <small>Sin portada</small>
             </div>
           </div>
-          <div class="libro-title">{{ libro?.titulo || 'Sin título' }}</div>
+          <div class="libro-title">{{ getTitulo(libro) }}</div>
           <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
         </div>
       </div>

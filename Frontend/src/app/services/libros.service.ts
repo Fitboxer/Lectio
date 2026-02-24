@@ -37,25 +37,34 @@ export class LibrosService {
       return of(cached.data);
     }
     
-    // ✅ SIN API KEY - Solo parámetros básicos
     const params = new HttpParams()
       .set('q', query)
       .set('maxResults', String(maxResults));
 
-    console.log('🌐 Petición a API:', query);
+    console.log('🌐 Petición a API Google Books:', query);
     
     return this.http
       .get<any>(`${this.googleApi}/volumes`, { params })
       .pipe(
-        map(res => (res.items ?? []).map((it: any) => this.mapGoogleToLibro(it))),
-        tap(data => {
-          this.saveToCache(cacheKey, data);
-        }),
-        catchError(error => {
-          console.error('Error en búsqueda Google:', error);
+        map((res: any) => {
+          const items = res.items ?? [];
+          console.log(`📖 Google devolvió ${items.length} libros para "${query}"`);
           
-          // Si hay error, devolver datos mock
-          return this.getMockLibros(query, maxResults);
+          // ✅ SIMPLEMENTE mapear todos los libros SIN filtrar
+          const libros: Libro[] = items.map((item: any) => this.mapGoogleToLibro(item));
+          
+          console.log(`✅ ${libros.length} libros mapeados`);
+          return libros; // ← Devolver TODOS los libros
+        }),
+        tap((data: Libro[]) => {
+          if (data.length > 0) {
+            console.log('💾 Guardando en caché:', data.length, 'libros');
+            this.saveToCache(cacheKey, data);
+          }
+        }),
+        catchError((error: any) => {
+          console.error('❌ Error en búsqueda Google:', error);
+          return of([]);
         })
       );
   }
@@ -64,28 +73,36 @@ export class LibrosService {
   getLibroGoogleById(googleId: string): Observable<Libro> {
     const cacheKey = `libro_${googleId}`;
     
+    // Verificar caché
     const cached = this.cache.get(cacheKey);
     if (cached && this.isCacheValid(cached)) {
+      console.log('📚 Libro desde caché:', googleId);
       return of(cached.data);
     }
     
-    // ✅ SIN API KEY
+    console.log('🌐 Obteniendo libro de Google Books por ID:', googleId);
+    
+    // ✅ Para volúmenes específicos, a veces funciona mejor sin parámetros adicionales
     return this.http
       .get<any>(`${this.googleApi}/volumes/${googleId}`)
       .pipe(
-        map(v => this.mapGoogleToLibro(v)),
+        map(item => {
+          console.log('✅ Libro obtenido de Google:', item.id);
+          return this.mapGoogleToLibro(item);
+        }),
         tap(libro => {
+          console.log('💾 Guardando libro en caché:', libro.titulo);
           this.saveToCache(cacheKey, libro);
         }),
         catchError(error => {
-          console.error('Error obteniendo libro por ID:', error);
+          console.error('❌ Error obteniendo libro por ID:', {
+            id: googleId,
+            status: error.status,
+            message: error.message
+          });
           
-          if (cached) {
-            return of(cached.data);
-          }
-          
-          // Mock de libro por ID
-          return of(this.createMockLibro(googleId));
+          // Intentar con un enfoque alternativo? No, mejor devolver error
+          return throwError(() => new Error(`No se pudo obtener el libro ${googleId}`));
         })
       );
   }
@@ -129,58 +146,61 @@ export class LibrosService {
     // Verificar caché primero
     const cached = this.cache.get(cacheKey);
     if (cached && this.isCacheValid(cached)) {
-      console.log('📚 Catálogo desde caché');
+      console.log('📚 Catálogo desde caché:', cached.data.length, 'libros');
       return of(cached.data);
     }
     
+    // Temas variados para tener un catálogo diverso
     const temas = [
       'subject:fiction',
       'subject:fantasy',
       'subject:history',
       'subject:romance',
+      'subject:science+fiction',
       'subject:mystery',
-      'subject:thriller'
+      'subject:thriller',
+      'subject:biography'
     ];
 
-    // Solo hacer peticiones si no están en caché individualmente
-      const peticiones = temas.map((tema) => {
-      const temaCacheKey = `tema_${tema}`;
-      const temaCached = this.cache.get(temaCacheKey);
-      
-      if (temaCached && this.isCacheValid(temaCached)) {
-        return of(temaCached.data);
-      }
-      
-      return this.buscarGoogle(tema, 8).pipe(
-        tap(data => this.saveToCache(temaCacheKey, data))
-      );
-    });
+    console.log('🌐 Cargando catálogo inicial desde Google Books...');
+    
+    const peticiones = temas.map(tema => 
+      this.buscarGoogle(tema, 8).pipe(
+        catchError(err => {
+          console.warn(`Error cargando tema ${tema}:`, err);
+          return of([]); // Si un tema falla, continuamos con los demás
+        })
+      )
+    );
 
     return forkJoin(peticiones).pipe(
-      map((listas) => {
+      map(listas => {
         const todos = listas.flat();
+        // Eliminar duplicados por ID
         const mapa = new Map<string, Libro>();
-        
         for (const libro of todos) {
-          mapa.set(libro.id, libro);
+          if (libro?.id) {
+            mapa.set(libro.id, libro);
+          }
         }
-        
         const resultado = Array.from(mapa.values());
+        console.log(`✅ Catálogo generado: ${resultado.length} libros únicos`);
         
         // Guardar catálogo completo en caché
         this.saveToCache(cacheKey, resultado);
-        
         return resultado;
       }),
       catchError(error => {
-        console.error('Error en catálogo inicial:', error);
+        console.error('❌ Error fatal en catálogo inicial:', error);
         
+        // Si todo falla y tenemos caché, usarlo
         if (cached) {
+          console.log('⚠️ Usando caché antiguo como fallback');
           return of(cached.data);
         }
         
-        // Si todo falla, devolver catálogo mock
-        return of(this.createMockCatalogo());
+        // Último recurso: array vacío
+        return of([]);
       })
     );
   }
@@ -344,37 +364,103 @@ export class LibrosService {
   // -------------------------
   // Mapeo Google -> Libro (sin cambios)
   // -------------------------
-  private mapGoogleToLibro(v: any): Libro {
-    const info = v.volumeInfo ?? {};
-    
-    let imagen = '';
-    
-    if (v.id) {
-      imagen = `https://books.google.com/books/content?id=${v.id}&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api`;
-    } 
-    else {
-      imagen = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || '';
+  private mapGoogleToLibro(item: any): Libro {
+    try {
+      const info = item.volumeInfo ?? {};
+      const id = item.id || `google_${Date.now()}_${Math.random()}`;
+      
+      // Construir URL de imagen de manera robusta
+      let imagen = '';
+      
+      // Intentar obtener la mejor imagen disponible
+      if (info.imageLinks) {
+        // Preferir thumbnail, luego smallThumbnail
+        imagen = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || '';
+        
+        // Asegurar HTTPS
+        if (imagen) {
+          imagen = imagen.replace('http://', 'https://');
+          
+          // Eliminar parámetros de zoom para imagen más grande
+          imagen = imagen.replace('&zoom=1', '&zoom=3');
+        }
+      }
+      
+      // Si no hay imagen, usar placeholder pero NO mock
+      if (!imagen) {
+        imagen = 'assets/book-placeholder.jpg';
+      }
+      
+      // Extraer año de publicación
+      let anioPublicacion: number | undefined = undefined;
+        if (info.publishedDate) {
+          const añoStr = String(info.publishedDate).slice(0, 4);
+          const anio = parseInt(añoStr, 10);
+          if (!isNaN(anio)) {
+            anioPublicacion = anio;
+          }
+        }
+      
+      // Procesar autores
+      const autores = (info.authors ?? []).map((nombre: string) => ({ 
+        id: undefined, 
+        nombre: nombre 
+      }));
+      
+      // Procesar géneros (categorías)
+      const generos = (info.categories ?? []).map((categoria: string) => ({ 
+        id: undefined, 
+        nombre: categoria.split('/')[0].trim() // Tomar solo primera categoría
+      }));
+      
+      // Extraer ISBN
+      let isbn13 = null;
+      if (info.industryIdentifiers) {
+        const isbn13Obj = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_13');
+        if (isbn13Obj) isbn13 = isbn13Obj.identifier;
+        else {
+          const isbn10Obj = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_10');
+          if (isbn10Obj) isbn13 = isbn10Obj.identifier;
+        }
+      }
+      
+      // Construir objeto Libro
+      const libro: Libro = {
+        id: id,
+        titulo: info.title ?? 'Título no disponible',
+        sinopsis: info.description ?? '',
+        imagen: imagen,
+        anioPublicacion: anioPublicacion,
+        editorial: info.publisher ? { id: undefined, nombre: info.publisher } : undefined,
+        autores: autores,
+        generos: generos,
+        isbn13: isbn13,
+        googleAverageRating: info.averageRating ?? null,
+        googleRatingsCount: info.ratingsCount ?? null
+      };
+      
+      // Log para debug (primeros 3 libros)
+      if (Math.random() < 0.1) { // Solo log 10% de las veces para no saturar
+        console.log('📖 Libro mapeado:', {
+          titulo: libro.titulo,
+          autores: autores.length,
+          generos: generos.length,
+          tieneImagen: !!imagen && !imagen.includes('placeholder')
+        });
+      }
+      
+      return libro;
+      
+    } catch (error) {
+      console.error('❌ Error mapeando libro:', error, item);
+      // Devolver un libro mínimo pero válido
+      return {
+        id: item.id || `error_${Date.now()}`,
+        titulo: 'Error al cargar libro',
+        imagen: 'assets/book-placeholder.jpg',
+        autores: []
+      } as Libro;
     }
-    
-    if (imagen) {
-      imagen = imagen.replace('http://', 'https://');
-    }
-    
-    return {
-      id: v.id,
-      titulo: info.title ?? 'Sin título',
-      sinopsis: info.description ?? '',
-      imagen: imagen,
-      anioPublicacion: info.publishedDate
-        ? Number(String(info.publishedDate).slice(0, 4))
-        : null,
-      editorial: info.publisher ? { nombre: info.publisher } : null,
-      autores: (info.authors ?? []).map((n: string) => ({ nombre: n })),
-      generos: (info.categories ?? []).map((c: string) => ({ nombre: c })),
-      googleAverageRating: info.averageRating ?? null,
-      googleRatingsCount: info.ratingsCount ?? null,
-      isbn13: this.extraerIsbn13(info)
-    } as Libro;
   }
 
   private extraerIsbn13(info: any): string | null {

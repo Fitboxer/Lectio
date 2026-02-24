@@ -1,8 +1,6 @@
 <section class="page">
-
   <!-- TARJETA DE BUSCADOR / FILTROS -->
   <div class="search-bar-card">
-    <!-- Línea superior: buscador + iconos -->
     <div class="search-top">
       <input
         type="text"
@@ -11,13 +9,11 @@
         [(ngModel)]="searchTerm"
         (ngModelChange)="aplicarFiltros()" />
 
-      <!-- Botón refrescar -->
       <button class="icon-button" title="Recargar lista" (click)="cargarLibros()">
         ⟳
       </button>
     </div>
 
-    <!-- Línea inferior: filtros + botón sorprender -->
     <div class="search-filters">
       <label>
         <span>Género</span>
@@ -45,7 +41,6 @@
 
   <!-- CONTENIDO PRINCIPAL -->
   <ng-container *ngIf="!cargando; else cargandoTpl">
-
     <p *ngIf="errorMsg" class="estado-texto">{{ errorMsg }}</p>
 
     <!-- GRID DE LIBROS -->
@@ -55,7 +50,6 @@
         *ngFor="let libro of librosPagina"
         (click)="verDetalle(libro.id)">
 
-        <!-- Portada del libro -->
         <div class="libro-cover">
           <img
             class="libro-img"
@@ -66,45 +60,26 @@
             (error)="onImgError($event)" />
         </div>
 
-        <!-- Información -->
         <div class="libro-info">
           <h3>{{ libro.titulo }}</h3>
-          <p class="autor">
-            {{ autoresToString(libro) }}
-          </p>
-          <p class="anio" *ngIf="libro.anioPublicacion">
-            Año: {{ libro.anioPublicacion }}
-          </p>
+          <p class="autor">{{ autoresToString(libro) }}</p>
+          <p class="anio" *ngIf="libro.anioPublicacion">Año: {{ libro.anioPublicacion }}</p>
         </div>
-
       </article>
     </div>
 
     <!-- PAGINACIÓN -->
     <div class="pagination" *ngIf="totalPages > 1">
-      <button
-        class="page-btn"
-        (click)="cambiarPagina(currentPage - 1)"
-        [disabled]="currentPage === 1">
+      <button class="page-btn" (click)="cambiarPagina(currentPage - 1)" [disabled]="currentPage === 1">
         Anterior
       </button>
-
-      <button
-        class="page-btn"
-        *ngFor="let p of paginas"
-        (click)="cambiarPagina(p)"
-        [class.active]="p === currentPage">
+      <button class="page-btn" *ngFor="let p of paginas" (click)="cambiarPagina(p)" [class.active]="p === currentPage">
         {{ p }}
       </button>
-
-      <button
-        class="page-btn"
-        (click)="cambiarPagina(currentPage + 1)"
-        [disabled]="currentPage === totalPages">
+      <button class="page-btn" (click)="cambiarPagina(currentPage + 1)" [disabled]="currentPage === totalPages">
         Siguiente
       </button>
     </div>
-
   </ng-container>
 
   <ng-template #cargandoTpl>
@@ -114,5 +89,4 @@
   <ng-template #sinLibrosTpl>
     <p class="estado-texto">No hay libros que coincidan con la búsqueda.</p>
   </ng-template>
-
 </section>

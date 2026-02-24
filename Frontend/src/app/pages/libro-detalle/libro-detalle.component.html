@@ -29,29 +29,34 @@
         <!-- BARRA DE ESTADOS -->
         <div class="estado-bar" *ngIf="authService.isLoggedIn()">
           <button class="estado-btn" 
-                  [class.active]="estadoActual === 'Favorito'"
-                  (click)="setEstado('FAVORITO')">
-            <i class="fa-solid fa-star"></i>
+                  [class.active]="estadoActual === 'FAVORITO'"
+                  (click)="setEstado('FAVORITO')"
+                  title="Favorito">
+            ⭐
           </button>
           <button class="estado-btn" 
-                  [class.active]="estadoActual === 'Leyendo'"
-                  (click)="setEstado('LEYENDO')">
-            <i class="fa-solid fa-book-open"></i>
+                  [class.active]="estadoActual === 'LEYENDO'"
+                  (click)="setEstado('LEYENDO')"
+                  title="Leyendo">
+            📖
           </button>
           <button class="estado-btn" 
-                  [class.active]="estadoActual === 'Pendiente'"
-                  (click)="setEstado('PENDIENTE')">
-            <i class="fa-solid fa-clock"></i>
+                  [class.active]="estadoActual === 'PENDIENTE'"
+                  (click)="setEstado('PENDIENTE')"
+                  title="Pendiente">
+            ⏳
           </button>
           <button class="estado-btn" 
-                  [class.active]="estadoActual === 'Abandonado'"
-                  (click)="setEstado('ABANDONADO')">
-            <i class="fa-solid fa-ban"></i>
+                  [class.active]="estadoActual === 'ABANDONADO'"
+                  (click)="setEstado('ABANDONADO')"
+                  title="Abandonado">
+            💔
           </button>
           <button class="estado-btn" 
-                  [class.active]="estadoActual === 'Terminado'"
-                  (click)="setEstado('LEIDO')">
-            <i class="fa-solid fa-check"></i>
+                  [class.active]="estadoActual === 'LEIDO'"
+                  (click)="setEstado('LEIDO')"
+                  title="Terminado">
+            ✅
           </button>
         </div>
 
@@ -92,7 +97,7 @@
         <!-- Sinopsis (HTML) -->
         <section class="box">
           <div class="box-title">Sinopsis</div>
-          <div class="sinopsis" [innerHTML]="sinopsisHtml"></div>
+          <div class="sinopsis" [innerHTML]="libro.sinopsis"></div>
         </section>
 
       </main>

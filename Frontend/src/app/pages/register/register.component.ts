@@ -1,71 +1,70 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css'],
-  imports: [CommonModule, FormsModule, RouterLink],
+  styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
+  email = '';
   username = '';
   password = '';
   confirmPassword = '';
-  email = '';
+  errorMsg = '';        // 👈 ANTES: errorMessage
+  successMsg = '';      // 👈 ANTES: successMessage
+  cargando = false;     // 👈 ANTES: loading
 
-  errorMessage = '';
-  successMessage = '';
-  loading = false;
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  constructor(private authService: AuthService, private router: Router) {}
-
-  register(): void {
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    if (!this.username.trim() || !this.password || !this.confirmPassword) {
-      this.errorMessage = 'Completa todos los campos.';
+  onSubmit(): void {    // 👈 CAMBIADO de register() a onSubmit()
+    // Validaciones
+    if (!this.email || !this.username || !this.password || !this.confirmPassword) {
+      this.errorMsg = 'Por favor completa todos los campos';
       return;
     }
 
     if (this.password !== this.confirmPassword) {
-      this.errorMessage = 'Las contraseñas no coinciden.';
+      this.errorMsg = 'Las contraseñas no coinciden';
       return;
     }
 
-    if (this.password.length < 4) {
-      this.errorMessage = 'La contraseña debe tener al menos 4 caracteres.';
+    if (this.password.length < 6) {
+      this.errorMsg = 'La contraseña debe tener al menos 6 caracteres';
       return;
     }
 
-    this.loading = true;
+    this.cargando = true;
+    this.errorMsg = '';
 
-    // ✅ Si tu AuthService tiene register({username, password}) úsalo así:
-    this.authService.register({ email: this.email.trim(), username: this.username.trim(), password: this.password }).subscribe({
-      next: () => {
-        this.loading = false;
-        this.successMessage = 'Usuario creado correctamente. Ya puedes iniciar sesión.';
+    const payload = {
+      email: this.email.trim(),
+      username: this.username.trim(),
+      password: this.password
+    };
 
-        // Opcional: redirigir al login tras 1s
-        setTimeout(() => this.router.navigate(['/login']), 900);
+    this.authService.register(payload).subscribe({
+      next: (response) => {
+        console.log('✅ Registro exitoso:', response);
+        this.successMsg = 'Registro completado. Ahora puedes iniciar sesión.';
+        
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 2000);
       },
-      error: (err) => {
-        this.loading = false;
-        const msg =
-          err?.error?.message ||
-          err?.error?.error ||
-          err?.message;
-
-        this.errorMessage =
-          (typeof msg === 'string' && msg.trim().length > 0)
-            ? msg
-            : 'No se ha podido crear el usuario.';
-      },
+      error: (err: any) => {
+        console.error('❌ Error registro:', err);
+        this.errorMsg = err.error?.message || 'Error al registrar usuario';
+        this.cargando = false;
+      }
     });
   }
 }

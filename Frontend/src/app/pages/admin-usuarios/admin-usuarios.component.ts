@@ -65,4 +65,8 @@ export class AdminUsuariosComponent implements OnInit {
     return this.authService.isAdmin();
   }
 
+  esAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
 }

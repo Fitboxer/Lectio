@@ -1,68 +1,70 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { LoginRequest } from '../../models/auth.model';
 
 @Component({
   selector: 'app-login',
   standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css'],
-  imports: [CommonModule, FormsModule, RouterLink],
+  styleUrls: ['./login.component.css']
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   username = '';
   password = '';
+  errorMsg = '';
+  cargando = false;
 
-  errorMessage = '';
-  loading = false;
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  constructor(private authService: AuthService, private router: Router) {}
-
-  // ✅ Método que espera el HTML (ngSubmit)="login()"
-  login(): void {
-    this.errorMessage = '';
-
-    if (!this.username.trim() || !this.password) {
-      this.errorMessage = 'Debes introducir usuario y contraseña.';
-      return;
+  ngOnInit(): void {
+    // Si ya está autenticado, redirigir inmediatamente
+    if (this.authService.isAuthenticated()) {
+      console.log('👤 Usuario ya autenticado, redirigiendo a home');
+      this.router.navigate(['/home']);
     }
-
-    const payload: LoginRequest = {
-      username: this.username.trim(),
-      password: this.password,
-    };
-
-    this.loading = true;
-
-    this.authService.login(payload).subscribe({
-      next: () => {
-        this.loading = false;
-        this.router.navigate(['/']);
-      },
-      error: (err) => {
-        this.loading = false;
-
-        // Mensaje por defecto
-        this.errorMessage = 'Usuario o contraseña incorrectos.';
-
-        // Si el backend devuelve un mensaje útil, lo mostramos
-        const msg =
-          err?.error?.message ||
-          err?.error?.error ||
-          err?.message;
-
-        if (typeof msg === 'string' && msg.trim().length > 0) {
-          this.errorMessage = msg;
-        }
-      },
-    });
   }
 
   onSubmit(): void {
-    this.login();
+    if (!this.username || !this.password) {
+      this.errorMsg = 'Por favor completa todos los campos';
+      return;
+    }
+
+    this.cargando = true;
+    this.errorMsg = '';
+
+    console.log('📤 Intentando login con:', this.username);
+
+    this.authService.login({
+      username: this.username,
+      password: this.password
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Login exitoso en componente');
+        
+        // Pequeño delay para asegurar que todo se actualizó
+        setTimeout(() => {
+          if (this.authService.isAuthenticated()) {
+            console.log('🎉 Usuario autenticado, redirigiendo a home');
+            this.router.navigate(['/home']);
+          } else {
+            console.error('❌ Error: Usuario no se autenticó');
+            this.errorMsg = 'Error al iniciar sesión';
+            this.cargando = false;
+          }
+        }, 100);
+      },
+      error: (error) => {
+        console.error('❌ Error login:', error);
+        this.errorMsg = error.error?.message || 'Usuario o contraseña incorrectos';
+        this.cargando = false;
+      }
+    });
   }
 }

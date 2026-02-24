@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs/operators';
 import { LibrosService } from '../../services/libros.service';
 import { Libro } from '../../models/libro.model';
 import { CommonModule } from '@angular/common';
@@ -19,7 +18,6 @@ import { RouterModule } from '@angular/router';
   ]
 })
 export class HomeComponent implements OnInit {
-
   libros: Libro[] = [];
   librosFiltrados: Libro[] = [];
 
@@ -47,43 +45,61 @@ export class HomeComponent implements OnInit {
     this.cargarLibros();
   }
 
-  // ---------- CARGA DE DATOS ----------
-
   cargarLibros(): void {
     this.cargando = true;
     this.errorMsg = '';
-
-    this.librosService.getCatalogoInicial()
-      .pipe(finalize(() => (this.cargando = false)))
-      .subscribe({
-        next: (data) => {
-          this.libros = data ?? [];
-          this.configurarFiltros();
-          this.aplicarFiltros();
-        },
-        error: (err) => {
-          console.error('Error cargando libros:', err);
-          this.errorMsg = 'No se han podido cargar los libros. Revisa la conexión o la API.';
-          this.libros = [];
-          this.librosFiltrados = [];
+    
+    console.log('🔄 Iniciando carga de catálogo...');
+    
+    this.librosService.getCatalogoInicial().subscribe({
+      next: (libros: Libro[]) => {
+        console.log('✅ Catálogo recibido:', libros.length, 'libros');
+        
+        if (libros.length > 0) {
+          console.log('📋 Primeros 3 títulos:', libros.slice(0, 3).map(l => l.titulo));
         }
-      });
+        
+        this.libros = libros;
+        
+        // Resetear filtros
+        this.searchTerm = '';
+        this.selectedGenero = 'Todos';
+        this.selectedAnio = 'Todos';
+        
+        // Configurar y aplicar filtros
+        this.configurarFiltros();
+        this.aplicarFiltros();
+        
+        this.cargando = false;
+        
+        console.log('📊 Estado final:', {
+          libros: this.libros.length,
+          filtrados: this.librosFiltrados.length,
+          pagina: this.librosPagina.length
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error:', error);
+        this.errorMsg = 'Error al cargar el catálogo';
+        this.cargando = false;
+      }
+    });
   }
-
-  // ---------- FILTROS ----------
 
   private configurarFiltros(): void {
     const generos = new Set<string>();
     const anios = new Set<number>();
 
     for (const libro of this.libros) {
-      if ((libro as any).generos && Array.isArray((libro as any).generos)) {
-        (libro as any).generos.forEach((g: any) => {
+      // Extraer géneros
+      if (libro.generos && Array.isArray(libro.generos)) {
+        libro.generos.forEach((g: any) => {
           const nombre = typeof g === 'string' ? g : g.nombre;
           if (nombre) generos.add(nombre);
         });
       }
 
+      // Extraer años
       if (libro.anioPublicacion) {
         anios.add(Number(libro.anioPublicacion));
       }
@@ -94,6 +110,11 @@ export class HomeComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
+    if (!this.libros || this.libros.length === 0) {
+      this.librosFiltrados = [];
+      return;
+    }
+
     const termino = this.searchTerm?.toLowerCase().trim() ?? '';
     const genero = this.selectedGenero;
     const anio = this.selectedAnio;
@@ -101,10 +122,8 @@ export class HomeComponent implements OnInit {
     this.librosFiltrados = this.libros.filter((libro) => {
       const titulo = libro.titulo?.toLowerCase() ?? '';
       const autores = this.autoresToString(libro).toLowerCase();
-      const coincideTexto =
-        !termino || titulo.includes(termino) || autores.includes(termino);
+      const coincideTexto = !termino || titulo.includes(termino) || autores.includes(termino);
 
-      // filtro por género
       let coincideGenero = true;
       if (genero && genero !== 'Todos') {
         const generosLibro: string[] =
@@ -112,7 +131,6 @@ export class HomeComponent implements OnInit {
         coincideGenero = generosLibro.includes(genero);
       }
 
-      // filtro por año
       let coincideAnio = true;
       if (anio && anio !== 'Todos') {
         coincideAnio = String(libro.anioPublicacion) === String(anio);
@@ -121,12 +139,10 @@ export class HomeComponent implements OnInit {
       return coincideTexto && coincideGenero && coincideAnio;
     });
 
-    // al cambiar filtros, volvemos a la primera página
     this.currentPage = 1;
   }
 
-  // ---------- PAGINACIÓN ----------
-
+  // Paginación
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.librosFiltrados.length / this.pageSize));
   }
@@ -146,11 +162,8 @@ export class HomeComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ---------- ACCIONES ----------
-
+  // Acciones
   verDetalle(id: string): void {
-    console.log('Navegando a libro con ID:', id);
-    
     this.router.navigate(['/libro', id]);
   }
 
@@ -158,29 +171,23 @@ export class HomeComponent implements OnInit {
     if (!this.librosFiltrados.length) return;
     const idx = Math.floor(Math.random() * this.librosFiltrados.length);
     const libro = this.librosFiltrados[idx];
-    console.log('Libro sorpresa seleccionado:', libro.titulo, 'ID:', libro.id);
     this.verDetalle(libro.id);
   }
 
-  onImgError(event: Event): void {
-    const target = event.target as HTMLImageElement;
-    target.src = 'assets/book-placeholder.jpg';
+  onImgError(event: any): void {
+    event.target.src = 'assets/book-placeholder.jpg';
   }
 
   autoresToString(libro: Libro): string {
-    // Ajusta según tu modelo real de autores
-    const autores = (libro as any).autores ?? [];
+    if (!libro.autores) return 'Autor desconocido';
+    
+    const autores = libro.autores;
     if (Array.isArray(autores)) {
       return autores
         .map((a: any) => (typeof a === 'string' ? a : a.nombre))
         .filter(Boolean)
         .join(', ');
     }
-    return String(autores ?? '');
-  }
-
-  getPortadaUrl(libro: any): string {
-    if (!libro) return '';
-    return libro.imagen || libro.portadaUrl || '';
+    return String(autores ?? 'Autor desconocido');
   }
 }
