@@ -9,7 +9,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -47,11 +46,18 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        // ✅ LIBROS - GET público, POST autenticado
+                        // ✅ LIBROS
+                        .requestMatchers(HttpMethod.POST, "/api/libros/google").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/libros/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/libros/google").authenticated()
 
+                        // ✅ BIBLIOTECA - Requiere autenticación
                         .requestMatchers("/api/biblioteca/**").authenticated()
+
+                        // ✅ COMENTARIOS - GET público, POST autenticado, DELETE admin
+                        .requestMatchers(HttpMethod.GET, "/api/comentarios/libro/**").permitAll()  // ← AÑADIDO
+                        .requestMatchers(HttpMethod.POST, "/api/comentarios/libro/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/comentarios/**").hasRole("ADMIN")
+                        .requestMatchers("/api/comentarios/admin/**").hasRole("ADMIN")
 
                         // ✅ ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

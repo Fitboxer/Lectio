@@ -1,55 +1,62 @@
-import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { catchError, throwError } from 'rxjs';
 
-export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-  
-  const token = authService.getToken();
-  
-  if (token) {
-    const clonedRequest = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Lista blanca de URLs públicas
+    const urlsPublicas = [
+      'googleapis.com/books',
+      '/auth/login',
+      '/auth/register',
+      '/api/libros/google',
+    ];
+
+    const esUrlPublica = urlsPublicas.some(url => req.url.includes(url));
+
+    if (esUrlPublica) {
+      console.log('🔓 URL pública, sin token:', req.url);
+      return next.handle(req);
+    }
+
+    const token = this.authService.getToken();
     
-    return next(clonedRequest).pipe(
-      catchError((error: any) => {
-        console.error(`❌ Error HTTP ${error.status}: ${req.url}`);
-        
-        // 🟢 CASO 1: Error de Google Books API - NO cerrar sesión
-        if (req.url.includes('googleapis.com')) {
-          console.warn('⚠️ Error en Google Books API - NO se cierra sesión');
-          return throwError(() => error);
+    if (token) {
+      console.log('🔐 Token siendo enviado:', token.substring(0, 20) + '...');
+      req = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
         }
+      });
+    }
+
+    return next.handle(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('❌ Error HTTP:', error.status, req.url);
         
-        // 🟢 CASO 2: Error en endpoints de libros - NO cerrar sesión
-        if (req.url.includes('/api/libros')) {
-          console.warn('⚠️ Error en endpoint de libros - NO se cierra sesión');
-          return throwError(() => error);
-        }
-        
-        // 🟢 CASO 3: Error en biblioteca - NO cerrar sesión (temporal)
-        if (req.url.includes('/api/biblioteca/')) {
-          console.warn('⚠️ Error en biblioteca - NO se cierra sesión (temporal)');
-          return throwError(() => error);
-        }
-        
-        // 🔴 Solo cerrar sesión para errores 401/403 en endpoints CRÍTICOS
-        if (error.status === 401 || error.status === 403) {
-          console.error('🔒 Acceso no autorizado a endpoint crítico. Cerrando sesión...');
-          authService.logout();
-          router.navigate(['/login']);
+        // ✅ SOLO cerrar sesión si es 401 (no autorizado)
+        // ✅ NO cerrar sesión en 403 (prohibido) porque puede ser que el libro no esté en biblioteca
+        if (error.status === 401) {
+          console.log('🔐 Error de autenticación (401), cerrando sesión');
+          this.authService.logout();
+          this.router.navigate(['/login']);
+        } else if (error.status === 403) {
+          // 403 puede ser "libro no en biblioteca" - NO cerrar sesión
+          console.log('⚠️ Error 403 - NO se cierra sesión (puede ser libro no en biblioteca)');
         }
         
         return throwError(() => error);
       })
     );
   }
-  
-  return next(req);
-};
+}

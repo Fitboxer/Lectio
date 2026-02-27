@@ -1,24 +1,32 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 
 export interface EstadoLectura {
   libroId: number;
-  estado: 'PENDIENTE' | 'LEYENDO' | 'TERMINADO' | 'ABANDONADO' | 'FAVORITO';
+  estado: 'Pendiente' | 'Leyendo' | 'Terminado' | 'Abandonado';
+  esFavorito: boolean;
   fechaInicio?: string;
   fechaFin?: string;
   paginasLeidas?: number;
 }
 
+export interface NotaLibro {
+  id?: number;
+  usuarioId: number;
+  libroId: number;
+  contenido: string;
+  fechaCreacion?: string;
+  fechaActualizacion?: string;
+}
+
 export interface LibroBiblioteca {
   id: number;
-  libroId: number;
   usuarioId: number;
-  estado: string;
-  fechaAgregado: string;
+  libroId: number;
   libro: {
     id: number;
     titulo: string;
@@ -26,6 +34,10 @@ export interface LibroBiblioteca {
     autores?: { nombre: string }[];
     anioPublicacion?: number;
   };
+  fechaAgregado: string;
+  estadoActual: string;
+  esFavorito?: boolean;
+  notas?: NotaLibro[];
 }
 
 @Injectable({
@@ -39,12 +51,13 @@ export class BibliotecaService {
     private authService: AuthService
   ) {}
 
-  /**
-   * Obtener biblioteca del usuario
-   */
+  // ============================================
+  // 📚 GESTIÓN DE BIBLIOTECA
+  // ============================================
+
   getBiblioteca(usuarioId: number): Observable<LibroBiblioteca[]> {
     const url = `${this.apiUrl}/${usuarioId}/libros`;
-    console.log('📚 Obteniendo biblioteca:', url);
+    console.log('📚 Obteniendo biblioteca de:', url);
     
     return this.http.get<LibroBiblioteca[]>(url).pipe(
       catchError(error => {
@@ -54,72 +67,47 @@ export class BibliotecaService {
     );
   }
 
-  /**
-   * Cambiar estado de un libro - CORREGIDO
-   */
-  cambiarEstado(libroId: number, estado: string): Observable<any> {
+  agregarLibroABiblioteca(libroId: number): Observable<any> {
     const usuarioId = this.authService.getUsuarioId();
     
     if (!usuarioId) {
-      console.error('❌ No hay usuario autenticado');
       return throwError(() => new Error('Usuario no autenticado'));
     }
     
-    // Mapeo de estados según tu backend
-    let estadoBackend = estado;
+    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}`;
+    console.log('📤 Agregando libro a biblioteca:', url);
     
-    // Mapeo de estados del frontend al backend
-    switch (estado) {
-      case 'Terminado':
-      case 'TERMINADO':
-      case 'LEIDO':
-        estadoBackend = 'LEIDO';
-        break;
-      case 'Favorito':
-      case 'FAVORITO':
-        estadoBackend = 'FAVORITO';
-        break;
-      case 'Pendiente':
-      case 'PENDIENTE':
-        estadoBackend = 'PENDIENTE';
-        break;
-      case 'Leyendo':
-      case 'LEYENDO':
-        estadoBackend = 'LEYENDO';
-        break;
-      case 'Abandonado':
-      case 'ABANDONADO':
-        estadoBackend = 'ABANDONADO';
-        break;
-      default:
-        estadoBackend = estado;
-    }
-    
-    // ✅ FORMATO CORRECTO según el error 403
-    // El backend espera { estado: "LEIDO" } no { estadoBackend: "LEIDO" }
-    const payload = { estado: estadoBackend };
-    
-    // URL correcta: /api/biblioteca/{usuarioId}/libros/{libroId}/estado
-    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}/estado`;
-    
-    console.log('📤 Cambiando estado:', { 
-      url, 
-      payload,
-      estadoOriginal: estado,
-      estadoMapeado: estadoBackend
-    });
-    
-    return this.http.post(url, payload).pipe(
+    return this.http.post(url, {}).pipe(
+      tap(response => console.log('✅ Libro agregado a biblioteca:', response)),
       catchError(error => {
-        console.error('❌ Error en cambiarEstado:', error);
+        console.error('❌ Error agregando libro a biblioteca:', error);
         return throwError(() => error);
       })
     );
   }
 
   /**
-   * Obtener estado de un libro
+   * 🗑️ ELIMINAR LIBRO DE LA BIBLIOTECA (quitar estado)
    */
+  eliminarLibroDeBiblioteca(libroId: number): Observable<void> {
+    const usuarioId = this.authService.getUsuarioId();
+    
+    if (!usuarioId) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+    
+    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}`;
+    console.log('🗑️ Eliminando libro de biblioteca:', url);
+    
+    return this.http.delete<void>(url).pipe(
+      tap(() => console.log('✅ Libro eliminado de biblioteca')),
+      catchError(error => {
+        console.error('❌ Error eliminando libro de biblioteca:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   obtenerEstado(libroId: number): Observable<any> {
     const usuarioId = this.authService.getUsuarioId();
     
@@ -128,10 +116,13 @@ export class BibliotecaService {
     }
     
     const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}/estado`;
+    console.log('🔍 Obteniendo estado de:', url);
     
     return this.http.get(url).pipe(
+      tap(data => console.log('✅ Estado obtenido:', data)),
       catchError(error => {
-        if (error.status === 404) {
+        console.error('❌ Error obteniendo estado:', error);
+        if (error.status === 403 || error.status === 404) {
           return of(null);
         }
         return throwError(() => error);
@@ -139,35 +130,135 @@ export class BibliotecaService {
     );
   }
 
-  /**
-   * Marcar libro como favorito
-   */
-  marcarFavorito(libroId: number): Observable<any> {
-    return this.cambiarEstado(libroId, 'FAVORITO');
-  }
-
-  /**
-   * Quitar de favoritos (establecer a PENDIENTE por defecto)
-   */
-  quitarFavorito(libroId: number): Observable<any> {
-    return this.cambiarEstado(libroId, 'PENDIENTE');
-  }
-
-  /**
-   * Obtener todos los libros favoritos del usuario
-   */
-  obtenerFavoritos(): Observable<any[]> {
+  cambiarEstadoLectura(libroId: number, estado: string): Observable<any> {
     const usuarioId = this.authService.getUsuarioId();
     
     if (!usuarioId) {
       return throwError(() => new Error('Usuario no autenticado'));
     }
     
-    const url = `${this.apiUrl}/${usuarioId}/favoritos`;
-    return this.http.get<any[]>(url).pipe(
+    let estadoBackend = '';
+    switch (estado) {
+      case 'PENDIENTE': estadoBackend = 'Pendiente'; break;
+      case 'LEYENDO': estadoBackend = 'Leyendo'; break;
+      case 'LEIDO': 
+      case 'TERMINADO': estadoBackend = 'Terminado'; break;
+      case 'ABANDONADO': estadoBackend = 'Abandonado'; break;
+      default: estadoBackend = estado;
+    }
+    
+    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}/estado`;
+    const payload = { estado: estadoBackend };
+    
+    console.log('📤 Cambiando estado lectura:', { url, payload });
+    
+    return this.http.post(url, payload).pipe(
+      tap(response => console.log('✅ Estado actualizado:', response)),
       catchError(error => {
-        console.error('Error obteniendo favoritos:', error);
+        console.error('❌ Error cambiando estado:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  toggleFavorito(libroId: number): Observable<any> {
+    const usuarioId = this.authService.getUsuarioId();
+    
+    if (!usuarioId) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+    
+    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}/favorito`;
+    console.log('⭐ Toggle favorito:', url);
+    
+    return this.http.post(url, {}).pipe(
+      catchError(error => {
+        console.error('❌ Error toggling favorito:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // ============================================
+  // 📝 GESTIÓN DE NOTAS PERSONALES
+  // ============================================
+
+  obtenerNotas(libroId: number): Observable<NotaLibro[]> {
+    const usuarioId = this.authService.getUsuarioId();
+    
+    if (!usuarioId) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+    
+    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}/notas`;
+    console.log('📝 Obteniendo notas de:', url);
+    
+    return this.http.get<NotaLibro[]>(url).pipe(
+      tap(notas => console.log(`✅ ${notas.length} notas obtenidas`)),
+      catchError(error => {
+        console.error('❌ Error obteniendo notas:', error);
         return of([]);
+      })
+    );
+  }
+
+  crearNota(libroId: number, contenido: string): Observable<NotaLibro> {
+    const usuarioId = this.authService.getUsuarioId();
+    
+    if (!usuarioId) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+    
+    const url = `${this.apiUrl}/${usuarioId}/libros/${libroId}/notas`;
+    const payload = { contenido };
+    
+    console.log('📝 Creando nota:', { url, contenido });
+    
+    return this.http.post<NotaLibro>(url, payload).pipe(
+      tap(nota => console.log('✅ Nota creada:', nota)),
+      catchError(error => {
+        console.error('❌ Error creando nota:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  actualizarNota(notaId: number, contenido: string): Observable<NotaLibro> {
+    const usuarioId = this.authService.getUsuarioId();
+    
+    if (!usuarioId) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+    
+    const url = `${this.apiUrl}/notas/${notaId}`;
+    const payload = { contenido };
+    
+    console.log('📝 Actualizando nota:', { url, contenido });
+    
+    return this.http.put<NotaLibro>(url, payload).pipe(
+      tap(nota => console.log('✅ Nota actualizada:', nota)),
+      catchError(error => {
+        console.error('❌ Error actualizando nota:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  eliminarNota(notaId: number): Observable<void> {
+    const usuarioId = this.authService.getUsuarioId();
+    
+    if (!usuarioId) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+    
+    const url = `${this.apiUrl}/notas/${notaId}`;
+    console.log('📝 Eliminando nota:', url);
+    
+    return this.http.delete<void>(url).pipe(
+      tap(() => console.log('✅ Nota eliminada')),
+      catchError(error => {
+        console.error('❌ Error eliminando nota:', error);
+        return throwError(() => error);
       })
     );
   }

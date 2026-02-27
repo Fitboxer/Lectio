@@ -28,36 +28,55 @@
 
         <!-- BARRA DE ESTADOS -->
         <div class="estado-bar" *ngIf="authService.isLoggedIn()">
-          <button class="estado-btn" 
-                  [class.active]="estadoActual === 'FAVORITO'"
-                  (click)="setEstado('FAVORITO')"
+          <!-- ⭐ FAVORITO -->
+          <button class="estado-btn favorito" 
+                  [class.active]="esFavorito"
+                  (click)="toggleFavorito()"
+                  [disabled]="cargandoFavorito"
                   title="Favorito">
             ⭐
           </button>
-          <button class="estado-btn" 
-                  [class.active]="estadoActual === 'LEYENDO'"
-                  (click)="setEstado('LEYENDO')"
-                  title="Leyendo">
-            📖
-          </button>
+          
+          <!-- Estados de lectura -->
           <button class="estado-btn" 
                   [class.active]="estadoActual === 'PENDIENTE'"
-                  (click)="setEstado('PENDIENTE')"
+                  (click)="cambiarEstado('PENDIENTE')"
+                  [disabled]="cargandoEstado"
                   title="Pendiente">
             ⏳
           </button>
           <button class="estado-btn" 
-                  [class.active]="estadoActual === 'ABANDONADO'"
-                  (click)="setEstado('ABANDONADO')"
-                  title="Abandonado">
-            💔
+                  [class.active]="estadoActual === 'LEYENDO'"
+                  (click)="cambiarEstado('LEYENDO')"
+                  [disabled]="cargandoEstado"
+                  title="Leyendo">
+            📖
           </button>
           <button class="estado-btn" 
                   [class.active]="estadoActual === 'LEIDO'"
-                  (click)="setEstado('LEIDO')"
+                  (click)="cambiarEstado('LEIDO')"
+                  [disabled]="cargandoEstado"
                   title="Terminado">
             ✅
           </button>
+          <button class="estado-btn" 
+                  [class.active]="estadoActual === 'ABANDONADO'"
+                  (click)="cambiarEstado('ABANDONADO')"
+                  [disabled]="cargandoEstado"
+                  title="Abandonado">
+            💔
+          </button>
+        </div>
+
+        <!-- 🗑️ BOTÓN PARA QUITAR ESTADO -->
+        <div class="quitar-estado-container" *ngIf="authService.isLoggedIn() && libroEnBiblioteca">
+          <button class="btn-quitar-estado" 
+                  (click)="quitarEstado()"
+                  [disabled]="cargandoEstado"
+                  title="Quitar de mi biblioteca">
+            🗑️ Quitar de mi biblioteca
+          </button>
+          <p class="nota-pequena">Se eliminará el libro de tu biblioteca junto con todas sus notas</p>
         </div>
 
         <p class="estado-texto" *ngIf="!authService.isLoggedIn()">
@@ -94,10 +113,73 @@
           </div>
         </ng-template>
 
-        <!-- Sinopsis (HTML) -->
+        <!-- Sinopsis con recuadro -->
         <section class="box">
           <div class="box-title">Sinopsis</div>
           <div class="sinopsis" [innerHTML]="libro.sinopsis"></div>
+        </section>
+
+        <!-- 📝 SECCIÓN DE NOTAS - SOLO CUANDO EL LIBRO ESTÁ EN BIBLIOTECA -->
+        <section class="box notas-section" *ngIf="authService.isLoggedIn() && libroEnBiblioteca">
+          <div class="box-title">
+            📝 Mis notas
+            <button class="btn-nueva-nota" (click)="mostrandoFormularioNota = !mostrandoFormularioNota">
+              {{ mostrandoFormularioNota ? 'Cancelar' : '+ Nueva nota' }}
+            </button>
+          </div>
+
+          <!-- Formulario nueva nota -->
+          <div class="nueva-nota" *ngIf="mostrandoFormularioNota">
+            <textarea 
+              [(ngModel)]="nuevaNota" 
+              placeholder="Escribe tu nota aquí..."
+              rows="4"></textarea>
+            <button 
+              class="btn-guardar-nota" 
+              (click)="crearNota()"
+              [disabled]="!nuevaNota.trim() || cargandoNotas">
+              Guardar nota
+            </button>
+          </div>
+
+          <!-- Lista de notas -->
+          <div class="notas-lista" *ngIf="notas.length > 0; else sinNotas">
+            <div class="nota-item" *ngFor="let nota of notas">
+              <div class="nota-header">
+                <span class="nota-fecha">{{ nota.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                <div class="nota-acciones">
+                  <button class="btn-editar" (click)="editarNota(nota)" title="Editar">✏️</button>
+                  <button class="btn-eliminar" (click)="eliminarNota(nota.id!)" title="Eliminar">🗑️</button>
+                </div>
+              </div>
+              
+              <!-- Modo edición -->
+              <div *ngIf="notaEditando?.id === nota.id; else vistaNormal">
+                <textarea 
+                  [(ngModel)]="notaEditandoTexto" 
+                  rows="3"></textarea>
+                <div class="nota-edicion-acciones">
+                  <button class="btn-guardar" (click)="guardarEdicion()">Guardar</button>
+                  <button class="btn-cancelar" (click)="cancelarEdicion()">Cancelar</button>
+                </div>
+              </div>
+              
+              <!-- Vista normal -->
+              <ng-template #vistaNormal>
+                <div class="nota-contenido">{{ nota.contenido }}</div>
+              </ng-template>
+            </div>
+          </div>
+
+          <ng-template #sinNotas>
+            <div class="sin-notas">
+              No hay notas para este libro. ¡Añade la primera!
+            </div>
+          </ng-template>
+
+          <div *ngIf="cargandoNotas" class="cargando-notas">
+            Cargando notas...
+          </div>
         </section>
 
       </main>
@@ -106,4 +188,82 @@
 
   </ng-container>
 
+</section>
+
+<!-- ============================================ -->
+<!-- 💬 COMENTARIOS PÚBLICOS -->
+<!-- ============================================ -->
+<section class="box comentarios-section">
+  <div class="box-title">
+    💬 Comentarios
+    <span class="comentarios-count" *ngIf="!mostrandoTodos">
+      Mostrando {{ comentariosVisibles.length }} de {{ todosLosComentarios.length }}
+    </span>
+    <span class="comentarios-count" *ngIf="mostrandoTodos">
+      Total {{ todosLosComentarios.length }} comentarios
+    </span>
+  </div>
+
+  <!-- Indicador de carga -->
+  <div *ngIf="cargandoComentarios" class="cargando-comentarios">
+    Cargando comentarios...
+  </div>
+
+  <!-- Lista de comentarios -->
+  <div class="comentarios-lista" *ngIf="!cargandoComentarios && comentariosVisibles.length > 0; else sinComentarios">
+    <div class="comentario-item" *ngFor="let comentario of comentariosVisibles">
+      <div class="comentario-header">
+        <span class="comentario-usuario">{{ comentario.usuarioNombre }}</span>
+        <span class="comentario-fecha">{{ comentario.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</span>
+        
+        <!-- Botón eliminar (solo visible para admin) -->
+        <button 
+          *ngIf="authService.isAdmin()" 
+          class="btn-eliminar-comentario" 
+          (click)="eliminarComentario(comentario.id)"
+          title="Eliminar comentario">
+          🗑️
+        </button>
+      </div>
+      <div class="comentario-contenido">{{ comentario.contenido }}</div>
+      <div class="comentario-editado" *ngIf="comentario.editado">(editado)</div>
+    </div>
+  </div>
+
+  <ng-template #sinComentarios>
+    <div class="sin-comentarios" *ngIf="!cargandoComentarios">
+      No hay comentarios aún. ¡Sé el primero en comentar!
+    </div>
+  </ng-template>
+
+  <!-- Botón ver más / ver menos - SOLO SI HAY MÁS DE 5 COMENTARIOS -->
+  <div class="ver-mas-container" *ngIf="todosLosComentarios.length > 5">
+    <button class="btn-ver-mas" (click)="toggleMostrarComentarios()">
+      {{ mostrandoTodos ? 'Ver menos' : 'Ver más comentarios' }}
+    </button>
+  </div>
+
+  <!-- Formulario para añadir comentario -->
+  <div class="nuevo-comentario" *ngIf="authService.isLoggedIn()">
+    <textarea
+      [(ngModel)]="nuevoComentario"
+      placeholder="Escribe tu comentario..."
+      rows="3"
+      maxlength="500"
+      class="comentario-input"></textarea>
+    <div class="comentario-acciones">
+      <span class="contador-caracteres">{{ nuevoComentario.length }}/500</span>
+      <button 
+        class="btn-enviar-comentario" 
+        (click)="enviarComentario()"
+        [disabled]="!nuevoComentario.trim() || enviandoComentario">
+        {{ enviandoComentario ? 'Enviando...' : 'Enviar comentario' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensaje para usuarios no registrados -->
+  <div class="comentario-login" *ngIf="!authService.isLoggedIn()">
+    <a routerLink="/login">Inicia sesión</a> para añadir un comentario.
+  </div>
 </section>

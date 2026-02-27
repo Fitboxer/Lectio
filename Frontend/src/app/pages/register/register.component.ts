@@ -16,17 +16,17 @@ export class RegisterComponent {
   username = '';
   password = '';
   confirmPassword = '';
-  errorMsg = '';        // 👈 ANTES: errorMessage
-  successMsg = '';      // 👈 ANTES: successMessage
-  cargando = false;     // 👈 ANTES: loading
+  errorMsg = '';
+  successMsg = '';
+  cargando = false;
 
   constructor(
     private authService: AuthService,
     private router: Router
   ) {}
 
-  onSubmit(): void {    // 👈 CAMBIADO de register() a onSubmit()
-    // Validaciones
+  onSubmit(): void {
+    // Validaciones básicas
     if (!this.email || !this.username || !this.password || !this.confirmPassword) {
       this.errorMsg = 'Por favor completa todos los campos';
       return;
@@ -45,24 +45,21 @@ export class RegisterComponent {
     this.cargando = true;
     this.errorMsg = '';
 
-    const payload = {
+    this.authService.register({
       email: this.email.trim(),
       username: this.username.trim(),
       password: this.password
-    };
-
-    this.authService.register(payload).subscribe({
+    }).subscribe({
       next: (response) => {
         console.log('✅ Registro exitoso:', response);
         this.successMsg = 'Registro completado. Ahora puedes iniciar sesión.';
-        
         setTimeout(() => {
           this.router.navigate(['/login']);
         }, 2000);
       },
       error: (err: any) => {
         console.error('❌ Error registro:', err);
-        this.errorMsg = err.error?.message || 'Error al registrar usuario';
+        this.errorMsg = err.message || 'Error al registrar usuario';
         this.cargando = false;
       }
     });

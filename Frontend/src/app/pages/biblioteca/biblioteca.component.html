@@ -1,4 +1,3 @@
-<!-- biblioteca.component.html - Versión final corregida -->
 <section class="biblioteca-page">
 
   <!-- Cabecera tipo prototipo -->
@@ -33,70 +32,38 @@
     </div>
   </div>
 
-  <!-- Filtros tipo “píldoras” -->
+  <!-- Filtros tipo “píldoras” (con favorito como filtro especial) -->
   <div class="filters">
     <button class="chip" (click)="estadoActivo = 'TODOS'" [class.active]="estadoActivo === 'TODOS'">
       Todos
     </button>
-    <button class="chip" (click)="estadoActivo = 'FAVORITO'" [class.active]="estadoActivo === 'FAVORITO'">
-      Favoritos
+    <button class="chip" (click)="estadoActivo = 'FAVORITOS'" [class.active]="estadoActivo === 'FAVORITOS'">
+      ⭐ Favoritos ({{ favoritos.length }})
     </button>
     <button class="chip" (click)="estadoActivo = 'LEYENDO'" [class.active]="estadoActivo === 'LEYENDO'">
-      Leyendo
+      📖 Leyendo ({{ getConteoPorEstado('Leyendo') }})
     </button>
     <button class="chip" (click)="estadoActivo = 'PENDIENTE'" [class.active]="estadoActivo === 'PENDIENTE'">
-      Pendientes
+      ⏳ Pendientes ({{ getConteoPorEstado('Pendiente') }})
     </button>
     <button class="chip" (click)="estadoActivo = 'ABANDONADO'" [class.active]="estadoActivo === 'ABANDONADO'">
-      Abandonados
+      💔 Abandonados ({{ getConteoPorEstado('Abandonado') }})
     </button>
     <button class="chip" (click)="estadoActivo = 'LEIDO'" [class.active]="estadoActivo === 'LEIDO'">
-      Completados
+      ✅ Completados ({{ getConteoPorEstado('Terminado') }})
     </button>
   </div>
 
   <!-- Contenido -->
   <div class="panel">
-    <!-- ✅ CORREGIDO: Usar estadoActivo en lugar de estadoSeleccionado -->
-    <ng-container *ngIf="estadoActivo === 'TODOS'; else modoUnico">
-      <div class="group" *ngFor="let sec of seccionesOrdenadas">
-        <div class="state-title">{{ sec.label }}</div>
-
-        <div class="libros-grid" *ngIf="sec.libros.length; else vacioGrupo">
-          <div class="libro-card" *ngFor="let libro of sec.libros" (click)="verDetalle(libro.libroId)">
-            <!-- ✅ Usar getPortadaUrl() para mantener consistencia -->
-            <div class="libro-portada-container">
-              <img *ngIf="getPortadaUrl(libro)" 
-                   [src]="getPortadaUrl(libro)" 
-                   [alt]="getTitulo(libro)"
-                   class="libro-portada"
-                   loading="lazy"
-                   (error)="onImgError($event)">
-              <div *ngIf="!getPortadaUrl(libro)" class="portada-placeholder">
-                <span>📚</span>
-                <small>Sin portada</small>
-              </div>
-            </div>
-            <div class="libro-title">{{ getTitulo(libro) }}</div>
-            <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
-          </div>
-        </div>
-
-        <ng-template #vacioGrupo>
-          <div class="empty">No tienes libros en este estado todavía.</div>
-        </ng-template>
-      </div>
-    </ng-container>
-
-    <ng-template #modoUnico>
+    <!-- VISTA DE FAVORITOS -->
+    <ng-container *ngIf="estadoActivo === 'FAVORITOS'">
       <div class="state-title">
-        {{ estadoActivo === 'LEIDO' ? 'Completados' : (estadoActivo | titlecase) }}
+        ⭐ Favoritos
       </div>
 
-      <!-- ✅ CORREGIDO: Usar estadoActivo en lugar de estadoSeleccionado -->
-      <div class="libros-grid" *ngIf="librosPorEstado[estadoActivo]?.length; else vacio">
-        <div class="libro-card" *ngFor="let libro of librosPorEstado[estadoActivo]" (click)="verDetalle(libro.libroId)">
-          <!-- ✅ Usar el mismo método getPortadaUrl() -->
+      <div class="libros-grid" *ngIf="favoritos.length > 0; else vacio">
+        <div class="libro-card" *ngFor="let libro of favoritos" (click)="verDetalle(libro.libroId)">
           <div class="libro-portada-container">
             <img *ngIf="getPortadaUrl(libro)" 
                  [src]="getPortadaUrl(libro)" 
@@ -111,12 +78,91 @@
           </div>
           <div class="libro-title">{{ getTitulo(libro) }}</div>
           <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
+          <div class="estado-chip" [ngClass]="getEstadoClass(libro.estado)">
+            {{ libro.estado }}
+          </div>
         </div>
       </div>
+    </ng-container>
 
-      <ng-template #vacio>
-        <div class="empty">No tienes libros en este estado todavía.</div>
+    <!-- VISTA POR ESTADOS DE LECTURA -->
+    <ng-container *ngIf="estadoActivo !== 'FAVORITOS'">
+      <ng-container *ngIf="estadoActivo === 'TODOS'; else modoUnico">
+        <!-- Vista agrupada -->
+        <div class="group" *ngFor="let sec of seccionesOrdenadas">
+          <div class="state-title">{{ sec.label }}</div>
+
+          <div class="libros-grid" *ngIf="sec.libros.length; else vacioGrupo">
+            <div class="libro-card" *ngFor="let libro of sec.libros" (click)="verDetalle(libro.libroId)">
+              <div class="libro-portada-container">
+                <img *ngIf="getPortadaUrl(libro)" 
+                     [src]="getPortadaUrl(libro)" 
+                     [alt]="getTitulo(libro)"
+                     class="libro-portada"
+                     loading="lazy"
+                     (error)="onImgError($event)">
+                <div *ngIf="!getPortadaUrl(libro)" class="portada-placeholder">
+                  <span>📚</span>
+                  <small>Sin portada</small>
+                </div>
+              </div>
+              <div class="libro-title">{{ getTitulo(libro) }}</div>
+              <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
+              
+              <!-- ✅ AÑADIDO: Mostrar el estado de cada libro -->
+              <div class="estado-chip" [ngClass]="getEstadoClass(libro.estado)">
+                {{ libro.estado }}
+              </div>
+              
+              <!-- ⭐ Favorito -->
+              <div class="favorito-icon" *ngIf="libro.esFavorito">⭐</div>
+            </div>
+          </div>
+
+          <ng-template #vacioGrupo>
+            <div class="empty">No tienes libros en este estado todavía.</div>
+          </ng-template>
+        </div>
+      </ng-container>
+
+      <ng-template #modoUnico>
+        <!-- Vista por estado único -->
+        <div class="state-title">
+          {{ estadoActivo === 'LEIDO' ? 'Completados' : (estadoActivo | titlecase) }}
+        </div>
+
+        <div class="libros-grid" *ngIf="librosPorEstado[getBackendEstado(estadoActivo)]?.length; else vacio">
+          <div class="libro-card" *ngFor="let libro of librosPorEstado[getBackendEstado(estadoActivo)]" (click)="verDetalle(libro.libroId)">
+            <div class="libro-portada-container">
+              <img *ngIf="getPortadaUrl(libro)" 
+                   [src]="getPortadaUrl(libro)" 
+                   [alt]="getTitulo(libro)"
+                   class="libro-portada"
+                   loading="lazy"
+                   (error)="onImgError($event)">
+              <div *ngIf="!getPortadaUrl(libro)" class="portada-placeholder">
+                <span>📚</span>
+                <small>Sin portada</small>
+              </div>
+            </div>
+            <div class="libro-title">{{ getTitulo(libro) }}</div>
+            <div class="libro-autor">{{ obtenerAutores(libro) || 'Autor desconocido' }}</div>
+            
+            <!-- ✅ AÑADIDO: Mostrar el estado de cada libro -->
+            <div class="estado-chip" [ngClass]="getEstadoClass(libro.estado)">
+              {{ libro.estado }}
+            </div>
+            
+            <!-- ⭐ Favorito -->
+            <div class="favorito-icon" *ngIf="libro.esFavorito">⭐</div>
+          </div>
+        </div>
       </ng-template>
+    </ng-container>
+
+    <!-- Template vacío genérico -->
+    <ng-template #vacio>
+      <div class="empty">No tienes libros en este estado todavía.</div>
     </ng-template>
   </div>
 </section>

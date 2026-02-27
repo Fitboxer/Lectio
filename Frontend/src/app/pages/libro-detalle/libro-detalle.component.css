@@ -40,15 +40,26 @@
   gap: 12px;
 }
 
-.cover{
+.cover-container {
   width: 100%;
   aspect-ratio: 2 / 3;
+}
+
+.cover{
+  width: 100%;
+  height: 100%;
   border-radius: 18px;
-  background-size: cover;
-  background-position: center;
   border: 1px solid rgba(255,255,255,.12);
-  position: relative;
   overflow: hidden;
+  background: rgba(255,255,255,.06);
+  position: relative;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .cover.no-cover{
@@ -58,9 +69,19 @@
 .cover-fallback{
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   opacity: .8;
+  text-align: center;
+  padding: 20px;
+}
+
+.cover-fallback span {
+  font-size: 48px;
+  margin-bottom: 10px;
+  opacity: 0.5;
 }
 
 .estado-bar{
@@ -75,7 +96,6 @@
   backdrop-filter: blur(8px);
 }
 
-/* Botones base */
 .estado-btn{
   width: 40px;
   height: 40px;
@@ -95,7 +115,6 @@
     transform 0.12s ease;
 }
 
-/* Hover general */
 .estado-btn:hover{
   background: rgba(255,255,255,.10);
   border-color: rgba(255,255,255,.35);
@@ -103,21 +122,23 @@
   box-shadow: 0 4px 12px rgba(0,0,0,.35);
 }
 
-/* Estado activo (leyendo, pendiente, etc.) */
 .estado-btn.active{
   background: linear-gradient(135deg, rgba(170,120,255,.9), rgba(255,190,120,.9));
   border-color: rgba(255,255,255,.8);
   box-shadow: 0 0 0 1px rgba(255,255,255,.2), 0 6px 18px rgba(0,0,0,.55);
+  transform: scale(1.05);
 }
 
-/* Opcional: estilo distinto para el favorito */
-.estado-btn:first-child.active{
+.estado-btn.favorito.active{
   background: linear-gradient(135deg, #ffcf40, #ff8a3d);
   color: #2b1a00;
+  border-color: rgba(255,255,255,.8);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.2), 0 6px 18px rgba(0,0,0,.55);
+  transform: scale(1.05);
 }
 
 .right{
-  min-width: 0; /* ✅ para que el texto haga wrap y no rompa el layout */
+  min-width: 0;
 }
 
 .title{
@@ -187,7 +208,6 @@
   line-height: 1.55;
 }
 
-/* ✅ Importante: el HTML de Google Books trae <p> */
 .sinopsis p{
   margin: 0 0 10px 0;
 }
@@ -196,43 +216,543 @@
   opacity: .75;
 }
 
-/* AÑADE ESTO AL FINAL DE TU CSS */
-.cover-container {
-  width: 100%;
-  aspect-ratio: 2 / 3;
+/* ============================================ */
+/* 📝 NUEVOS ESTILOS PARA NOTAS
+/* ============================================ */
+
+.notas-section {
+  margin-top: 2rem;
 }
 
-.cover {
-  width: 100%;
-  height: 100%;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.12);
-  overflow: hidden;
-  background: rgba(255,255,255,.06);
+.box-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.cover-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.btn-nueva-nota {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
 }
 
-.cover-fallback {
+.btn-nueva-nota:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.nueva-nota {
+  margin-bottom: 1.5rem;
+}
+
+.nueva-nota textarea {
   width: 100%;
-  height: 100%;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.nueva-nota textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.btn-guardar-nota {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.btn-guardar-nota:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-guardar-nota:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notas-lista {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.8;
-  font-size: 14px;
-  text-align: center;
-  padding: 20px;
+  gap: 1rem;
 }
 
-.cover-fallback span {
-  font-size: 48px;
-  margin-bottom: 10px;
+.nota-item {
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 3px solid #667eea;
+}
+
+.nota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.nota-fecha {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.nota-acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nota-acciones button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.nota-acciones button:hover {
+  opacity: 1;
+}
+
+.nota-contenido {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.nota-item textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-family: inherit;
+  resize: vertical;
+  margin: 0.5rem 0;
+}
+
+.nota-item textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.nota-edicion-acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.btn-guardar, .btn-cancelar {
+  padding: 0.3rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-guardar {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.btn-cancelar {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.sin-notas {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.cargando-notas {
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.quitar-estado-container {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.btn-quitar-estado {
+  background: rgba(220, 53, 69, 0.2);
+  color: #f5b5b5;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  width: 100%;
+}
+
+.btn-quitar-estado:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-quitar-estado:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nota-pequena {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-top: 0.3rem;
+}
+
+/* ============================================ */
+/* 💬 ESTILOS PARA COMENTARIOS
+/* ============================================ */
+
+.comentarios-section {
+  margin-top: 2rem;
+}
+
+.comentarios-count {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  font-weight: normal;
+}
+
+.comentarios-lista {
+  margin-bottom: 1.5rem;
+}
+
+.comentario-item {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+}
+
+.comentario-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.comentario-usuario {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.comentario-fecha {
+  opacity: 0.5;
+  font-size: 0.75rem;
+}
+
+.btn-eliminar-comentario {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.5;
+  margin-left: auto;
+  transition: opacity 0.2s;
+}
+
+.btn-eliminar-comentario:hover {
+  opacity: 1;
+}
+
+.comentario-contenido {
+  word-break: break-word;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.comentario-editado {
+  font-size: 0.7rem;
+  opacity: 0.4;
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+
+.sin-comentarios {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  font-style: italic;
+  opacity: 0.6;
+  margin-bottom: 1.5rem;
+}
+
+.nuevo-comentario {
+  margin-top: 1rem;
+}
+
+.comentario-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.comentario-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.comentario-acciones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contador-caracteres {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+.btn-enviar-comentario {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.btn-enviar-comentario:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-enviar-comentario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comentario-login {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.comentario-login a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.comentario-login a:hover {
+  text-decoration: underline;
+}
+
+.comentarios-count {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  font-weight: normal;
+}
+
+.cargando-comentarios {
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.ver-mas-container {
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.btn-ver-mas {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+  background: rgba(255,255,255,0.05);
+}
+
+.btn-ver-mas:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.3);
+}
+
+/* Estilos existentes de comentarios */
+.comentarios-lista {
+  margin-bottom: 1.5rem;
+}
+
+.comentario-item {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+}
+
+.comentario-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.comentario-usuario {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.comentario-fecha {
+  opacity: 0.5;
+  font-size: 0.75rem;
+}
+
+.btn-eliminar-comentario {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.5;
+  margin-left: auto;
+  transition: opacity 0.2s;
+}
+
+.btn-eliminar-comentario:hover {
+  opacity: 1;
+}
+
+.comentario-contenido {
+  word-break: break-word;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.comentario-editado {
+  font-size: 0.7rem;
+  opacity: 0.4;
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+
+.sin-comentarios {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  font-style: italic;
+  opacity: 0.6;
+  margin-bottom: 1.5rem;
+}
+
+.nuevo-comentario {
+  margin-top: 1rem;
+}
+
+.comentario-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.comentario-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.comentario-acciones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contador-caracteres {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+.btn-enviar-comentario {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.btn-enviar-comentario:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-enviar-comentario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comentario-login {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.comentario-login a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.comentario-login a:hover {
+  text-decoration: underline;
 }

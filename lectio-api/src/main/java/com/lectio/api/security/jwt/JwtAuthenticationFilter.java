@@ -33,8 +33,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
+        // ✅ CORREGIDO: Permitir POST a /api/libros/google sin autenticación
+        if (path.startsWith("/api/libros/google") && "POST".equalsIgnoreCase(method)) {
+            System.out.println("🔓 POST a /api/libros/google - PERMITIDO sin token");
+            return true;
+        }
+
         return path.startsWith("/api/auth") ||
-                (path.startsWith("/api/libros") && "GET".equalsIgnoreCase(method)) || // ← SOLO GET
+                (path.startsWith("/api/libros") && "GET".equalsIgnoreCase(method)) ||
                 path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/swagger-resources") ||
@@ -79,7 +85,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String roleName = (usuario.getRol() != null) ? usuario.getRol().getNombre() : "USER";
                     System.out.println("🔐 Rol del usuario: " + roleName);
 
-                    // ✅ CREAR LA AUTENTICACIÓN
                     var authorities = List.of(
                             new SimpleGrantedAuthority("ROLE_" + roleName)
                     );
@@ -95,7 +100,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-                    // ✅ ESTABLECER LA AUTENTICACIÓN EN EL CONTEXTO
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     System.out.println("✅ Autenticación establecida para: " + username);
                 }

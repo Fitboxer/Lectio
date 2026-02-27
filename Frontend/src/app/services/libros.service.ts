@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, forkJoin, map, of, tap, catchError, throwError } from 'rxjs';
-
+import { Observable, forkJoin, of, tap, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Libro } from '../models/libro.model';
 
@@ -10,27 +9,27 @@ interface CacheItem {
   timestamp: number;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class LibrosService {
   private googleApi = 'https://www.googleapis.com/books/v1';
   private apiUrl = `${environment.apiUrl}/libros`;
   
-  // Cache en memoria
   private cache = new Map<string, CacheItem>();
-  private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas
+  private readonly CACHE_DURATION = 24 * 60 * 60 * 1000;
   private readonly CACHE_KEY = 'google_books_cache';
 
   constructor(private http: HttpClient) {
-    if (typeof window !== 'undefined') {
-      this.loadCacheFromStorage();
-    }
+    this.loadCacheFromStorage();
   }
 
-  /** Búsqueda genérica en Google Books CON CACHE */
+  /**
+   * Búsqueda genérica en Google Books
+   */
   buscarGoogle(query: string, maxResults = 24): Observable<Libro[]> {
     const cacheKey = `buscar_${query}_${maxResults}`;
     
-    // Verificar caché
     const cached = this.cache.get(cacheKey);
     if (cached && this.isCacheValid(cached)) {
       console.log('📚 Retornando desde caché:', query);
@@ -39,41 +38,39 @@ export class LibrosService {
     
     const params = new HttpParams()
       .set('q', query)
-      .set('maxResults', String(maxResults));
+      .set('maxResults', String(maxResults))
+      .set('langRestrict', 'es');
 
     console.log('🌐 Petición a API Google Books:', query);
     
     return this.http
       .get<any>(`${this.googleApi}/volumes`, { params })
       .pipe(
-        map((res: any) => {
+        map(res => {
           const items = res.items ?? [];
           console.log(`📖 Google devolvió ${items.length} libros para "${query}"`);
-          
-          // ✅ SIMPLEMENTE mapear todos los libros SIN filtrar
-          const libros: Libro[] = items.map((item: any) => this.mapGoogleToLibro(item));
-          
-          console.log(`✅ ${libros.length} libros mapeados`);
-          return libros; // ← Devolver TODOS los libros
+          return items.map((item: any) => this.mapGoogleToLibro(item));
         }),
-        tap((data: Libro[]) => {
+        tap(data => {
           if (data.length > 0) {
             console.log('💾 Guardando en caché:', data.length, 'libros');
             this.saveToCache(cacheKey, data);
           }
         }),
-        catchError((error: any) => {
+        catchError(error => {
           console.error('❌ Error en búsqueda Google:', error);
           return of([]);
         })
       );
   }
 
-  /** Obtener un único libro de Google Books por su id CON CACHE */
+  /**
+   * Obtener un libro específico de Google Books por su ID - CORREGIDO
+   * Ahora usa el endpoint público sin necesidad de API key
+   */
   getLibroGoogleById(googleId: string): Observable<Libro> {
     const cacheKey = `libro_${googleId}`;
     
-    // Verificar caché
     const cached = this.cache.get(cacheKey);
     if (cached && this.isCacheValid(cached)) {
       console.log('📚 Libro desde caché:', googleId);
@@ -82,7 +79,8 @@ export class LibrosService {
     
     console.log('🌐 Obteniendo libro de Google Books por ID:', googleId);
     
-    // ✅ Para volúmenes específicos, a veces funciona mejor sin parámetros adicionales
+    // ✅ SIN PARÁMETROS - URL limpia
+    // Para volúmenes específicos, a veces funciona mejor sin parámetros
     return this.http
       .get<any>(`${this.googleApi}/volumes/${googleId}`)
       .pipe(
@@ -101,19 +99,88 @@ export class LibrosService {
             message: error.message
           });
           
-          // Intentar con un enfoque alternativo? No, mejor devolver error
+          // ✅ Intentar con otro formato si falla
+          return this.getLibroGoogleByIdAlternativo(googleId);
+        })
+      );
+  }
+
+  /**
+   * Método alternativo para obtener libro por ID (con proyección)
+   */
+  private getLibroGoogleByIdAlternativo(googleId: string): Observable<Libro> {
+    console.log('🔄 Intentando método alternativo para:', googleId);
+    
+    const params = new HttpParams()
+      .set('projection', 'full')
+      .set('country', 'ES');
+
+    return this.http
+      .get<any>(`${this.googleApi}/volumes/${googleId}`, { params })
+      .pipe(
+        map(item => this.mapGoogleToLibro(item)),
+        tap(libro => {
+          console.log('✅ Libro obtenido con método alternativo');
+          this.saveToCache(`libro_${googleId}`, libro);
+        }),
+        catchError(error => {
+          console.error('❌ También falló método alternativo:', error);
           return throwError(() => new Error(`No se pudo obtener el libro ${googleId}`));
         })
       );
   }
 
+  crearLibroEnBackendDesdeGoogle(libroGoogle: Libro): Observable<{ id: number }> {
+    console.log('📤 Creando libro en backend desde Google:', libroGoogle.titulo);
+    
+    // Preparar autores como strings
+    const autores = (libroGoogle.autores || []).map(autor => 
+      typeof autor === 'string' ? autor : (autor.nombre || '')
+    ).filter(Boolean);
+    
+    // Preparar géneros como strings
+    const generos = (libroGoogle.generos || []).map(genero => 
+      typeof genero === 'string' ? genero : (genero.nombre || '')
+    ).filter(Boolean);
+    
+    // Editorial como string
+    const editorial = typeof libroGoogle.editorial === 'string' 
+      ? libroGoogle.editorial 
+      : (libroGoogle.editorial?.nombre || '');
+    
+    const payload = {
+      titulo: libroGoogle.titulo,
+      sinopsis: libroGoogle.sinopsis || '',
+      imagen: libroGoogle.imagen || '',
+      anioPublicacion: libroGoogle.anioPublicacion,
+      editorial: editorial,
+      autores: autores,
+      generos: generos,
+      googleId: libroGoogle.id,
+      isbn13: (libroGoogle as any).isbn13 || null
+    };
+
+    console.log('📤 Payload:', payload);
+    
+    return this.http.post<{ id: number }>(`${this.apiUrl}/google`, payload).pipe(
+      tap(response => console.log('✅ Libro creado:', response)),
+      catchError(error => {
+        console.error('❌ Error creando libro:', error);
+        // Devolver un error para que el componente lo maneje
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener libro del backend por ID
+   */
   getLibroBackendById(id: number): Observable<Libro> {
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
       map(data => ({
         id: data.id?.toString() || data.id,
         titulo: data.titulo || '',
         sinopsis: data.sinopsis || '',
-        // ✅ Usar 'imagen' del backend
         imagen: data.imagen ? data.imagen.replace('http://', 'https://') : '',
         anioPublicacion: data.anioPublicacion,
         editorial: data.editorial,
@@ -125,32 +192,40 @@ export class LibrosService {
     );
   }
 
+  /**
+   * Buscar si un libro existe en el backend por su Google ID
+   */
   buscarLibroPorGoogleId(googleId: string): Observable<{ id: number; existe: boolean }> {
     return this.http.get<{ id: number; existe: boolean }>(`${this.apiUrl}/google/${googleId}`)
       .pipe(
         catchError(error => {
           if (error.status === 404) {
-            // El libro NO existe (es normal, devolvemos existe=false)
             return of({ id: 0, existe: false });
           }
-          // Otro tipo de error (500, 403, etc.) lo propagamos
           return throwError(() => error);
         })
       );
   }
 
-  /** Catálogo inicial con caché mejorado */
+  /**
+   * Obtener libros destacados
+   */
+  getLibrosDestacados(consulta: string = 'bestseller'): Observable<Libro[]> {
+    return this.buscarGoogle(consulta, 24);
+  }
+
+  /**
+   * Catálogo inicial
+   */
   getCatalogoInicial(): Observable<Libro[]> {
     const cacheKey = 'catalogo_inicial';
     
-    // Verificar caché primero
     const cached = this.cache.get(cacheKey);
     if (cached && this.isCacheValid(cached)) {
       console.log('📚 Catálogo desde caché:', cached.data.length, 'libros');
       return of(cached.data);
     }
     
-    // Temas variados para tener un catálogo diverso
     const temas = [
       'subject:fiction',
       'subject:fantasy',
@@ -168,7 +243,7 @@ export class LibrosService {
       this.buscarGoogle(tema, 8).pipe(
         catchError(err => {
           console.warn(`Error cargando tema ${tema}:`, err);
-          return of([]); // Si un tema falla, continuamos con los demás
+          return of([]);
         })
       )
     );
@@ -176,7 +251,6 @@ export class LibrosService {
     return forkJoin(peticiones).pipe(
       map(listas => {
         const todos = listas.flat();
-        // Eliminar duplicados por ID
         const mapa = new Map<string, Libro>();
         for (const libro of todos) {
           if (libro?.id) {
@@ -185,69 +259,82 @@ export class LibrosService {
         }
         const resultado = Array.from(mapa.values());
         console.log(`✅ Catálogo generado: ${resultado.length} libros únicos`);
-        
-        // Guardar catálogo completo en caché
         this.saveToCache(cacheKey, resultado);
         return resultado;
       }),
       catchError(error => {
         console.error('❌ Error fatal en catálogo inicial:', error);
-        
-        // Si todo falla y tenemos caché, usarlo
         if (cached) {
-          console.log('⚠️ Usando caché antiguo como fallback');
           return of(cached.data);
         }
-        
-        // Último recurso: array vacío
         return of([]);
       })
     );
   }
 
-  /** Métodos originales (sin cambios) */
-  crearLibroEnBackendDesdeGoogle(libroGoogle: Libro): Observable<{ id: number }> {
-    
-    const autores = (libroGoogle.autores || []).map(autor => 
-      autor.nombre || autor
-    );
-    
-    const generos = (libroGoogle.generos || []).map(genero => 
-      genero.nombre || genero
-    );
-    
-    // ⚠️ EXTRAE EL NOMBRE COMO STRING (no envíes objeto)
-    const editorial = libroGoogle.editorial?.nombre || libroGoogle.editorial;
-    
-    const payload = {
-      titulo: libroGoogle.titulo,
-      sinopsis: libroGoogle.sinopsis,
-      imagen: libroGoogle.imagen,
-      anioPublicacion: libroGoogle.anioPublicacion,
-      editorial: editorial,  // ← AHORA ES UN STRING (no objeto)
-      autores: autores,
-      generos: generos,
-      googleId: libroGoogle.id,
-      isbn13: (libroGoogle as any).isbn13 || null
-    };
-
-    console.log('📤 Enviando payload a /api/libros/google (como String):', payload);
-    
-    return this.http.post<{ id: number }>(`${this.apiUrl}/google`, payload);
+  /**
+   * Mapear respuesta de Google Books a nuestro modelo Libro
+   */
+  private mapGoogleToLibro(item: any): Libro {
+    try {
+      const info = item.volumeInfo ?? {};
+      const id = item.id || `google_${Date.now()}_${Math.random()}`;
+      
+      let imagen = '';
+      if (info.imageLinks) {
+        imagen = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || '';
+        if (imagen) {
+          imagen = imagen.replace('http://', 'https://');
+          imagen = imagen.replace('&zoom=1', '&zoom=3');
+        }
+      }
+      
+      if (!imagen) {
+        imagen = 'assets/book-placeholder.jpg';
+      }
+      
+      let anioPublicacion: number | undefined = undefined;
+      if (info.publishedDate) {
+        const añoStr = String(info.publishedDate).slice(0, 4);
+        const anio = parseInt(añoStr, 10);
+        if (!isNaN(anio)) {
+          anioPublicacion = anio;
+        }
+      }
+      
+      const autores = (info.authors ?? []).map((nombre: string) => ({ 
+        id: undefined, 
+        nombre: nombre 
+      }));
+      
+      const generos = (info.categories ?? []).map((categoria: string) => ({ 
+        id: undefined, 
+        nombre: categoria.split('/')[0].trim()
+      }));
+      
+      return {
+        id: id,
+        titulo: info.title ?? 'Título no disponible',
+        sinopsis: info.description ?? '',
+        imagen: imagen,
+        anioPublicacion: anioPublicacion,
+        editorial: info.publisher ? { id: undefined, nombre: info.publisher } : undefined,
+        autores: autores,
+        generos: generos
+      } as Libro;
+      
+    } catch (error) {
+      console.error('❌ Error mapeando libro:', error);
+      return {
+        id: `error_${Date.now()}`,
+        titulo: 'Error al cargar libro',
+        imagen: 'assets/book-placeholder.jpg',
+        autores: []
+      } as Libro;
+    }
   }
 
-  getCatalogoGoogle(porDefecto = 'bestseller'): Observable<Libro[]> {
-    return this.buscarGoogle(porDefecto);
-  }
-
-  getLibrosBackend(): Observable<Libro[]> {
-    return this.http.get<Libro[]>(`${this.apiUrl}`);
-  }
-
-  // -------------------------
   // Sistema de Caché
-  // -------------------------
-  
   private isCacheValid(cachedItem: CacheItem): boolean {
     const now = Date.now();
     return (now - cachedItem.timestamp) < this.CACHE_DURATION;
@@ -258,7 +345,6 @@ export class LibrosService {
       data: data,
       timestamp: Date.now()
     };
-    
     this.cache.set(key, cacheItem);
     this.saveCacheToStorage();
   }
@@ -274,203 +360,22 @@ export class LibrosService {
 
   private loadCacheFromStorage(): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const stored = localStorage.getItem(this.CACHE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          for (const [key, value] of Object.entries(parsed)) {
-            this.cache.set(key, value as CacheItem);
-          }
-          console.log('Caché cargado:', this.cache.size, 'items');
+      const stored = localStorage.getItem(this.CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        for (const [key, value] of Object.entries(parsed)) {
+          this.cache.set(key, value as CacheItem);
         }
-      } else {
-        console.log('Entorno no navegador, caché no cargado');
+        console.log('Caché cargado:', this.cache.size, 'items');
       }
     } catch (e) {
       console.warn('Error cargando caché:', e);
     }
   }
 
-  /** Métodos para debug/control del caché */
   clearCache(): void {
     this.cache.clear();
     localStorage.removeItem(this.CACHE_KEY);
     console.log('✅ Caché limpiado');
   }
-
-  getCacheStats(): { size: number; keys: string[] } {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys())
-    };
-  }
-
-  // -------------------------
-  // Datos Mock (respaldo)
-  // -------------------------
-  
-  private getMockLibros(query: string, count: number): Observable<Libro[]> {
-    const mockLibros: Libro[] = [];
-    
-    for (let i = 1; i <= count; i++) {
-      mockLibros.push(this.createMockLibro(`${query}_${i}`));
-    }
-    
-    return of(mockLibros);
-  }
-
-  private createMockLibro(id: string): Libro {
-    const temas = ['Ficción', 'Fantasía', 'Historia', 'Romance', 'Misterio', 'Thriller'];
-    const temaAleatorio = temas[Math.floor(Math.random() * temas.length)];
-    
-    return {
-      id: id,
-      titulo: `Libro ${temaAleatorio} ${Math.floor(Math.random() * 1000)}`,
-      sinopsis: `Esta es una descripción de ejemplo para un libro de ${temaAleatorio.toLowerCase()}.`,
-      portadaUrl: 'assets/book-placeholder.jpg',
-      anioPublicacion: 2000 + Math.floor(Math.random() * 24),
-      editorial: { nombre: 'Editorial Ejemplo' },
-      autores: [{ nombre: 'Autor Ejemplo' }],
-      generos: [{ nombre: temaAleatorio }],
-      googleAverageRating: 3 + Math.random() * 2,
-      googleRatingsCount: Math.floor(Math.random() * 1000)
-    } as any;
-  }
-
-  private createMockCatalogo(): Libro[] {
-    const catalogo: Libro[] = [];
-    const temas = ['Ficción', 'Fantasía', 'Historia', 'Romance', 'Misterio', 'Thriller'];
-    
-    temas.forEach((tema, index) => {
-      for (let i = 1; i <= 8; i++) {
-        catalogo.push({
-          id: `${tema.toLowerCase()}_${index}_${i}`,
-          titulo: `${tema} Libro ${i}`,
-          sinopsis: `Una emocionante historia de ${tema.toLowerCase()}.`,
-          portadaUrl: 'assets/book-placeholder.jpg',
-          anioPublicacion: 2010 + i,
-          editorial: { nombre: `${tema} Publishing` },
-          autores: [{ nombre: `Autor ${tema} ${i}` }],
-          generos: [{ nombre: tema }],
-          googleAverageRating: 4.0 + Math.random(),
-          googleRatingsCount: 100 + Math.floor(Math.random() * 900)
-        } as any);
-      }
-    });
-    
-    return catalogo;
-  }
-
-  // -------------------------
-  // Mapeo Google -> Libro (sin cambios)
-  // -------------------------
-  private mapGoogleToLibro(item: any): Libro {
-    try {
-      const info = item.volumeInfo ?? {};
-      const id = item.id || `google_${Date.now()}_${Math.random()}`;
-      
-      // Construir URL de imagen de manera robusta
-      let imagen = '';
-      
-      // Intentar obtener la mejor imagen disponible
-      if (info.imageLinks) {
-        // Preferir thumbnail, luego smallThumbnail
-        imagen = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || '';
-        
-        // Asegurar HTTPS
-        if (imagen) {
-          imagen = imagen.replace('http://', 'https://');
-          
-          // Eliminar parámetros de zoom para imagen más grande
-          imagen = imagen.replace('&zoom=1', '&zoom=3');
-        }
-      }
-      
-      // Si no hay imagen, usar placeholder pero NO mock
-      if (!imagen) {
-        imagen = 'assets/book-placeholder.jpg';
-      }
-      
-      // Extraer año de publicación
-      let anioPublicacion: number | undefined = undefined;
-        if (info.publishedDate) {
-          const añoStr = String(info.publishedDate).slice(0, 4);
-          const anio = parseInt(añoStr, 10);
-          if (!isNaN(anio)) {
-            anioPublicacion = anio;
-          }
-        }
-      
-      // Procesar autores
-      const autores = (info.authors ?? []).map((nombre: string) => ({ 
-        id: undefined, 
-        nombre: nombre 
-      }));
-      
-      // Procesar géneros (categorías)
-      const generos = (info.categories ?? []).map((categoria: string) => ({ 
-        id: undefined, 
-        nombre: categoria.split('/')[0].trim() // Tomar solo primera categoría
-      }));
-      
-      // Extraer ISBN
-      let isbn13 = null;
-      if (info.industryIdentifiers) {
-        const isbn13Obj = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_13');
-        if (isbn13Obj) isbn13 = isbn13Obj.identifier;
-        else {
-          const isbn10Obj = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_10');
-          if (isbn10Obj) isbn13 = isbn10Obj.identifier;
-        }
-      }
-      
-      // Construir objeto Libro
-      const libro: Libro = {
-        id: id,
-        titulo: info.title ?? 'Título no disponible',
-        sinopsis: info.description ?? '',
-        imagen: imagen,
-        anioPublicacion: anioPublicacion,
-        editorial: info.publisher ? { id: undefined, nombre: info.publisher } : undefined,
-        autores: autores,
-        generos: generos,
-        isbn13: isbn13,
-        googleAverageRating: info.averageRating ?? null,
-        googleRatingsCount: info.ratingsCount ?? null
-      };
-      
-      // Log para debug (primeros 3 libros)
-      if (Math.random() < 0.1) { // Solo log 10% de las veces para no saturar
-        console.log('📖 Libro mapeado:', {
-          titulo: libro.titulo,
-          autores: autores.length,
-          generos: generos.length,
-          tieneImagen: !!imagen && !imagen.includes('placeholder')
-        });
-      }
-      
-      return libro;
-      
-    } catch (error) {
-      console.error('❌ Error mapeando libro:', error, item);
-      // Devolver un libro mínimo pero válido
-      return {
-        id: item.id || `error_${Date.now()}`,
-        titulo: 'Error al cargar libro',
-        imagen: 'assets/book-placeholder.jpg',
-        autores: []
-      } as Libro;
-    }
-  }
-
-  private extraerIsbn13(info: any): string | null {
-      if (info.industryIdentifiers) {
-          const isbn13Obj = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_13');
-          if (isbn13Obj) return isbn13Obj.identifier;
-          const isbn10Obj = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_10');
-          if (isbn10Obj) return isbn10Obj.identifier;
-      }
-      return null;
-  }
-
 }

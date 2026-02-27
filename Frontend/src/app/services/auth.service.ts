@@ -72,9 +72,6 @@ export class AuthService {
     return localStorage.getItem('token');
   }
 
-  /**
-   * Login - CORREGIDO para el formato de tu backend
-   */
   login(credentials: { username: string; password: string }): Observable<LoginResponse> {
     console.log('📤 Intentando login con:', credentials.username);
     
@@ -83,23 +80,18 @@ export class AuthService {
         console.log('✅ Login response:', response);
         
         if (response.token && response.username && response.userId && this.isBrowser) {
-          // Transformar la respuesta al formato Usuario
           const usuario: Usuario = {
             id: response.userId,
             nombre: response.username,
-            email: '', // Si el backend no devuelve email, lo dejamos vacío
+            email: '',
             rol: response.roles && response.roles.length > 0 ? response.roles[0] : undefined
           };
           
-          // Guardar en localStorage
           localStorage.setItem('token', response.token);
           localStorage.setItem('currentUser', JSON.stringify(usuario));
-          
-          // Actualizar BehaviorSubject
           this.currentUserSubject.next(usuario);
           
           console.log('💾 Usuario guardado:', usuario.nombre);
-          console.log('🔑 Token guardado:', response.token.substring(0, 20) + '...');
         } else {
           console.error('❌ Respuesta de login incompleta:', response);
         }
@@ -111,12 +103,49 @@ export class AuthService {
     );
   }
 
+  /**
+   * Registro de usuario - CORREGIDO para manejar mejor los errores
+   */
   register(data: { email: string; username: string; password: string }): Observable<any> {
+    console.log('📤 Intentando registro con:', data.email, data.username);
+    
     return this.http.post<any>(`${this.apiUrl}/register`, data).pipe(
       tap(response => console.log('✅ Registro response:', response)),
       catchError(error => {
         console.error('❌ Error en registro:', error);
-        return throwError(() => error);
+        
+        // ✅ Extraer mensaje de error del backend
+        let mensajeError = 'Error al registrar usuario';
+        
+        if (error.error) {
+          // Si el backend devuelve un mensaje específico
+          if (typeof error.error === 'string') {
+            mensajeError = error.error;
+          } else if (error.error.message) {
+            mensajeError = error.error.message;
+          } else if (error.error.error) {
+            mensajeError = error.error.error;
+          }
+          
+          // Mensajes específicos para errores comunes
+          if (error.status === 409) {
+            if (mensajeError.includes('email')) {
+              mensajeError = 'El email ya está registrado';
+            } else if (mensajeError.includes('username') || mensajeError.includes('nombre')) {
+              mensajeError = 'El nombre de usuario ya existe';
+            } else {
+              mensajeError = 'El email o usuario ya están registrados';
+            }
+          } else if (error.status === 400) {
+            mensajeError = 'Datos de registro inválidos';
+          }
+        }
+        
+        // Devolver un error con el mensaje personalizado
+        return throwError(() => ({
+          status: error.status,
+          message: mensajeError
+        }));
       })
     );
   }
@@ -147,4 +176,12 @@ export class AuthService {
     return null;
   }
 
+  debugState(): void {
+    console.log('🔍 Estado AuthService:', {
+      isBrowser: this.isBrowser,
+      hasToken: !!this.getToken(),
+      currentUser: this.currentUser,
+      tokenPreview: this.getToken()?.substring(0, 20)
+    });
+  }
 }

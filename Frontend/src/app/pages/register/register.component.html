@@ -1,8 +1,9 @@
-<div class="register-container">
-  <div class="register-card">
-    <h2>Crear Cuenta</h2>
-    
-    <form (ngSubmit)="onSubmit()" #registerForm="ngForm">  <!-- 👈 CAMBIADO a onSubmit() -->
+<section class="auth-page">
+  <div class="auth-card">
+    <h1>Crear Cuenta</h1>
+
+    <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+      <!-- Email -->
       <div class="form-group">
         <label for="email">Email</label>
         <input
@@ -12,9 +13,12 @@
           [(ngModel)]="email"
           required
           email
-          placeholder="tu@email.com">
+          #emailInput="ngModel"
+          [class.ng-invalid]="emailInput.invalid && emailInput.touched"
+        />
       </div>
 
+      <!-- Usuario -->
       <div class="form-group">
         <label for="username">Usuario</label>
         <input
@@ -23,9 +27,13 @@
           name="username"
           [(ngModel)]="username"
           required
-          placeholder="Nombre de usuario">
+          minlength="3"
+          #usernameInput="ngModel"
+          [class.ng-invalid]="usernameInput.invalid && usernameInput.touched"
+        />
       </div>
 
+      <!-- Contraseña -->
       <div class="form-group">
         <label for="password">Contraseña</label>
         <input
@@ -35,9 +43,12 @@
           [(ngModel)]="password"
           required
           minlength="6"
-          placeholder="••••••••">
+          #passwordInput="ngModel"
+          [class.ng-invalid]="passwordInput.invalid && passwordInput.touched"
+        />
       </div>
 
+      <!-- Confirmar Contraseña -->
       <div class="form-group">
         <label for="confirmPassword">Confirmar Contraseña</label>
         <input
@@ -46,21 +57,53 @@
           name="confirmPassword"
           [(ngModel)]="confirmPassword"
           required
-          placeholder="••••••••">
+          #confirmPasswordInput="ngModel"
+          [class.ng-invalid]="confirmPasswordInput.invalid && confirmPasswordInput.touched"
+        />
       </div>
 
-      <p class="error" *ngIf="errorMsg">{{ errorMsg }}</p>      <!-- 👈 errorMsg -->
-      <p class="success" *ngIf="successMsg">{{ successMsg }}</p> <!-- 👈 successMsg -->
+      <!-- Mensajes de error específicos por campo -->
+      <div class="field-error" *ngIf="emailInput.invalid && emailInput.touched">
+        <span *ngIf="emailInput.errors?.['required']">El email es obligatorio</span>
+        <span *ngIf="emailInput.errors?.['email']">El email no es válido</span>
+      </div>
 
-      <button 
-        type="submit" 
-        [disabled]="cargando || registerForm.invalid">  <!-- 👈 cargando -->
-        {{ cargando ? 'Creando cuenta...' : 'Crear cuenta' }}
+      <div class="field-error" *ngIf="usernameInput.invalid && usernameInput.touched">
+        <span *ngIf="usernameInput.errors?.['required']">El usuario es obligatorio</span>
+        <span *ngIf="usernameInput.errors?.['minlength']">Mínimo 3 caracteres</span>
+      </div>
+
+      <div class="field-error" *ngIf="passwordInput.invalid && passwordInput.touched">
+        <span *ngIf="passwordInput.errors?.['required']">La contraseña es obligatoria</span>
+        <span *ngIf="passwordInput.errors?.['minlength']">Mínimo 6 caracteres</span>
+      </div>
+
+      <div class="field-error" *ngIf="confirmPasswordInput.invalid && confirmPasswordInput.touched">
+        <span *ngIf="confirmPasswordInput.errors?.['required']">Confirma tu contraseña</span>
+      </div>
+
+      <!-- Error de contraseñas no coinciden -->
+      <div class="field-error" *ngIf="password && confirmPassword && password !== confirmPassword">
+        Las contraseñas no coinciden
+      </div>
+
+      <!-- Mensajes de error/success del servidor -->
+      <div class="error-message" *ngIf="errorMsg">
+        {{ errorMsg }}
+      </div>
+
+      <div class="success-message" *ngIf="successMsg">
+        {{ successMsg }}
+      </div>
+
+      <button type="submit" [disabled]="registerForm.invalid || cargando">
+        {{ cargando ? 'Creando cuenta...' : 'Registrarse' }}
       </button>
     </form>
 
-    <p class="login-link">
-      ¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a>
+    <p class="auth-footer">
+      ¿Ya tienes cuenta?
+      <a routerLink="/login">Inicia sesión</a>
     </p>
   </div>
-</div>
+</section>

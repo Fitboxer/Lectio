@@ -59,8 +59,19 @@ public class BibliotecaController {
             @PathVariable Long usuarioId,
             @PathVariable Long libroId) {
 
-        bibliotecaService.eliminarLibroDeUsuario(usuarioId, libroId);
-        return ResponseEntity.noContent().build();
+        System.out.println("🗑️ ===== ENDPOINT ELIMINAR LIBRO =====");
+        System.out.println("🗑️ Usuario ID: " + usuarioId);
+        System.out.println("🗑️ Libro ID: " + libroId);
+        System.out.println("🗑️ Usuario autenticado: " +
+                SecurityContextHolder.getContext().getAuthentication().getName());
+
+        try {
+            bibliotecaService.eliminarLibroDeUsuario(usuarioId, libroId);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @GetMapping("/{usuarioId}/libros")

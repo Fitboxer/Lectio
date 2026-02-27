@@ -17,17 +17,20 @@ public class BibliotecaServiceImpl implements BibliotecaService {
     private final UsuarioLibroRepository usuarioLibroRepository;
     private final UsuarioLibroEstadoRepository usuarioLibroEstadoRepository;
     private final EstadoRepository estadoRepository;
+    private final NotaRepository notaRepository;  // ✅ AÑADIR
 
     public BibliotecaServiceImpl(UsuarioRepository usuarioRepository,
                                  LibroRepository libroRepository,
                                  UsuarioLibroRepository usuarioLibroRepository,
                                  UsuarioLibroEstadoRepository usuarioLibroEstadoRepository,
-                                 EstadoRepository estadoRepository) {
+                                 EstadoRepository estadoRepository,
+                                 NotaRepository notaRepository) {  // ✅ AÑADIR
         this.usuarioRepository = usuarioRepository;
         this.libroRepository = libroRepository;
         this.usuarioLibroRepository = usuarioLibroRepository;
         this.usuarioLibroEstadoRepository = usuarioLibroEstadoRepository;
         this.estadoRepository = estadoRepository;
+        this.notaRepository = notaRepository;  // ✅ AÑADIR
     }
 
     @Override
@@ -57,10 +60,27 @@ public class BibliotecaServiceImpl implements BibliotecaService {
         var libro = libroRepository.findById(libroId)
                 .orElseThrow(() -> new RuntimeException("Libro no encontrado con id " + libroId));
 
-        var ul = usuarioLibroRepository.findByUsuarioAndLibro(usuario, libro)
+        var usuarioLibro = usuarioLibroRepository.findByUsuarioAndLibro(usuario, libro)
                 .orElseThrow(() -> new RuntimeException("El libro no está en la biblioteca del usuario"));
 
-        usuarioLibroRepository.delete(ul);
+        // ✅ 1. Eliminar los estados asociados
+        List<UsuarioLibroEstado> estados = usuarioLibroEstadoRepository.findByUsuarioLibro(usuarioLibro);
+        if (!estados.isEmpty()) {
+            System.out.println("🗑️ Eliminando " + estados.size() + " estados asociados");
+            usuarioLibroEstadoRepository.deleteAll(estados);
+        }
+
+        // ✅ 2. Eliminar las notas del usuario para este libro
+        // Usando el método que ya tienes en el repositorio
+        List<Nota> notas = notaRepository.findByUsuarioIdAndLibroIdOrderByFechaCreacionDesc(usuarioId, libroId);
+        if (!notas.isEmpty()) {
+            System.out.println("🗑️ Eliminando " + notas.size() + " notas asociadas");
+            notaRepository.deleteAll(notas);
+        }
+
+        // ✅ 3. Eliminar el libro de la biblioteca
+        usuarioLibroRepository.delete(usuarioLibro);
+        System.out.println("✅ Libro eliminado de la biblioteca del usuario");
     }
 
     @Override
@@ -105,14 +125,13 @@ public class BibliotecaServiceImpl implements BibliotecaService {
             var usuarioLibro = usuarioLibroRepository.findByUsuarioAndLibro(usuario, libro)
                     .orElseThrow(() -> new RuntimeException("El libro no está en la biblioteca del usuario"));
 
-            // ✅ IMPORTANTE: Devolver null si no hay estado, no lanzar excepción
             return usuarioLibroEstadoRepository
                     .findFirstByUsuarioLibroOrderByFechaEstadoDesc(usuarioLibro)
-                    .orElse(null);  // ← Cambiado de orElseThrow a orElse(null)
+                    .orElse(null);
 
         } catch (Exception e) {
             System.err.println("Error obteniendo último estado: " + e.getMessage());
-            return null;  // ← Devolver null en caso de error
+            return null;
         }
     }
 
