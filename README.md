@@ -1,248 +1,260 @@
-📘 Lectio
+# 📚 Lectio  
 
-Lectio es una aplicación web full-stack basada en arquitectura cliente-servidor, compuesta por:
+> Plataforma web full-stack para la gestión de contenido de lectura  
+> Arquitectura cliente-servidor desacoplada | API REST | SPA
 
-🖥️ Un Frontend (aplicación web)
+---
 
-🔌 Una API Backend (lectio-api)
+## ✨ ¿Qué es Lectio?
 
-El sistema está diseñado para gestionar información relacionada con lectura/contenido estructurado mediante una API REST conectada a una interfaz web.
+**Lectio** es una aplicación web diseñada para gestionar contenido estructurado relacionado con lectura (libros u otros recursos).
 
-🏗️ Arquitectura del Proyecto
+El proyecto está construido siguiendo una arquitectura moderna separando:
 
-El proyecto sigue una arquitectura desacoplada:
+- 🖥️ **Frontend** → Interfaz de usuario (SPA)
+- 🔌 **Backend (lectio-api)** → API REST
+- 🗄️ **Base de datos** → Persistencia de la información
 
-Cliente (Frontend)
-        ↓
-   API REST (Backend)
-        ↓
-   Base de Datos
+El objetivo es ofrecer una base sólida, escalable y mantenible que cualquier desarrollador pueda clonar, ejecutar y ampliar fácilmente.
 
-El Frontend consume la API mediante peticiones HTTP.
+---
 
-El Backend gestiona la lógica de negocio y el acceso a datos.
+# 🏗️ Arquitectura
 
-La comunicación se realiza en formato JSON.
+```
+┌─────────────────┐
+│    Frontend     │
+│  (Aplicación)   │
+└────────┬────────┘
+         │ HTTP / JSON
+         ▼
+┌─────────────────┐
+│     API REST    │
+│  (lectio-api)   │
+└────────┬────────┘
+         ▼
+     Base de Datos
+```
 
-📂 Estructura del Repositorio
+✔ Separación de responsabilidades  
+✔ Comunicación mediante JSON  
+✔ Arquitectura escalable  
+
+---
+
+# 📂 Estructura del Proyecto
+
+```
 Lectio/
-├── Frontend/          # Aplicación web cliente
-├── lectio-api/        # API REST backend
+├── Frontend/          # Cliente web
+├── lectio-api/        # API backend
 ├── .gitignore
 └── README.md
-🚀 Tecnologías Utilizadas
+```
 
-(Ajustar si fuera necesario según el stack real del proyecto)
+---
 
-Frontend
+# 🚀 Tecnologías Utilizadas
 
-HTML5
+## 🖥️ Frontend
+- HTML5
+- CSS3
+- TypeScript / JavaScript
+- Framework SPA (Angular / React si aplica)
+- Consumo de API REST
 
-CSS3
+## 🔌 Backend
+- Entorno Node.js / Java (según implementación)
+- API REST
+- Controladores y rutas
+- Gestión de datos
+- Conexión a base de datos
 
-TypeScript / JavaScript
+---
 
-Framework SPA (Angular / React si aplica)
+# ⚙️ Requisitos Previos
 
-Consumo de API REST con HTTP
+Antes de empezar necesitas tener instalado:
 
-Backend
+- Git
+- Node.js (versión LTS recomendada)
+- npm
+- Base de datos configurada (si aplica)
 
-Node.js / Java / otro entorno backend
+Comprobar instalación:
 
-API REST
-
-Gestión de rutas y controladores
-
-Conexión a base de datos (si aplica)
-
-⚙️ Requisitos Previos
-
-Antes de ejecutar el proyecto debes tener instalado:
-
-✅ Git
-
-✅ Node.js (versión LTS recomendada)
-
-✅ npm (incluido con Node)
-
-✅ Base de datos configurada (si el backend la requiere)
-
-Comprobar versiones:
-
+```bash
 node -v
 npm -v
 git --version
-📥 Instalación Paso a Paso
-1️⃣ Clonar el repositorio
+```
+
+---
+
+# 📥 Instalación
+
+## 1️⃣ Clonar el repositorio
+
+```bash
 git clone https://github.com/Fitboxer/Lectio.git
 cd Lectio
-2️⃣ Configurar el Backend (API)
+```
+
+---
+
+## 2️⃣ Configurar y ejecutar el Backend
+
+```bash
 cd lectio-api
 npm install
-
-Si existe archivo .env, crear uno basado en .env.example:
-
-cp .env.example .env
-
-Configurar variables necesarias (puerto, base de datos, etc).
-
-3️⃣ Ejecutar el Backend
 npm start
+```
 
-O en modo desarrollo:
+Si el proyecto usa variables de entorno, crea un archivo `.env`:
 
-npm run dev
+```env
+PORT=8080
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=password
+DB_NAME=lectio
+```
 
-Por defecto la API debería ejecutarse en:
+La API estará disponible en:
 
+```
 http://localhost:8080
+```
 
-(Verificar puerto en configuración del proyecto).
+---
 
-4️⃣ Configurar el Frontend
+## 3️⃣ Configurar y ejecutar el Frontend
 
 En otra terminal:
 
+```bash
 cd Frontend
 npm install
-
-Verificar que la URL del backend esté configurada correctamente en los archivos de entorno:
-
-Ejemplo:
-
-environment.ts
-apiUrl = 'http://localhost:8080'
-5️⃣ Ejecutar el Frontend
 npm start
-
-O (según framework):
-
-ng serve
+```
 
 La aplicación estará disponible en:
 
+```
 http://localhost:4200
-🔗 Endpoints Principales (Ejemplo)
+```
 
-(Modificar según tu API real)
+---
 
-Método	Endpoint	Descripción
-GET	/api/libros	Obtener todos los libros
-GET	/api/libros/:id	Obtener libro por ID
-POST	/api/libros	Crear libro
-PUT	/api/libros/:id	Actualizar libro
-DELETE	/api/libros/:id	Eliminar libro
+# 🔗 Ejemplo de Endpoints
 
-Formato de respuesta:
+| Método | Endpoint | Descripción |
+|--------|----------|------------|
+| GET | /api/libros | Obtener todos los libros |
+| GET | /api/libros/:id | Obtener libro por ID |
+| POST | /api/libros | Crear libro |
+| PUT | /api/libros/:id | Actualizar libro |
+| DELETE | /api/libros/:id | Eliminar libro |
 
+Ejemplo de respuesta:
+
+```json
 {
   "id": 1,
   "titulo": "Ejemplo",
   "autor": "Autor",
   "descripcion": "Descripción del libro"
 }
-🧪 Testing
+```
 
-Para ejecutar los tests:
+---
+
+# 🧪 Testing
 
 Backend:
 
+```bash
 cd lectio-api
 npm test
+```
 
 Frontend:
 
+```bash
 cd Frontend
 npm test
-🛠️ Scripts Disponibles
+```
 
-Ejemplo típico:
+---
 
-Backend
+# 📦 Build para Producción
 
-npm start → Ejecutar servidor
+## Frontend
 
-npm run dev → Ejecutar en modo desarrollo
-
-npm test → Ejecutar tests
-
-Frontend
-
-npm start → Servidor de desarrollo
-
-npm run build → Build producción
-
-npm test → Tests
-
-📦 Build para Producción
-Frontend
+```bash
 npm run build
+```
 
-Generará carpeta dist/ lista para desplegar.
+Genera la carpeta `dist/` lista para desplegar.
 
-Backend
+## Backend
 
-Configurar variables de entorno en producción:
-
+```bash
 NODE_ENV=production
-PORT=8080
-
-Ejecutar:
-
 npm start
-🌍 Despliegue
+```
 
-El proyecto puede desplegarse en:
+---
 
-AWS
+# 🌍 Despliegue
 
-Heroku
+El proyecto está preparado para desplegarse en:
 
-Vercel (frontend)
+- Servidores VPS
+- AWS
+- Railway
+- Docker
+- Hosting tradicional
 
-Railway
+Puede añadirse fácilmente un `docker-compose.yml` para levantar toda la infraestructura con un solo comando.
 
-Docker
+---
 
-Si se desea contenerizar, crear:
+# 🛠️ Posibles Mejoras Futuras
 
-Dockerfile para backend
+- Autenticación de usuarios
+- Gestión de perfiles
+- Dashboard con estadísticas
+- Sistema de favoritos
+- Contenerización con Docker
+- CI/CD
 
-Dockerfile para frontend
+---
 
-docker-compose.yml para orquestación
+# 🤝 Contribución
 
-🔐 Variables de Entorno (Ejemplo)
-PORT=8080
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=password
-DB_NAME=lectio
+1. Haz un fork
+2. Crea una rama:
 
-Nunca subir el archivo .env al repositorio.
-
-🤝 Contribución
-
-Crear fork
-
-Crear rama nueva:
-
+```bash
 git checkout -b feature/nueva-funcionalidad
+```
 
-Commit con mensaje claro
+3. Haz commit
+4. Push
+5. Abre un Pull Request
 
-Push
+---
 
-Pull Request
+# 📄 Licencia
 
-📄 Licencia
+Actualmente sin licencia definida.  
+Se recomienda añadir MIT License si se desea permitir uso libre del proyecto.
 
-Actualmente el proyecto no tiene licencia definida.
+---
 
-Se recomienda añadir MIT si se desea permitir uso libre del proyecto.
+# 📌 Estado del Proyecto
 
-📌 Estado del Proyecto
-
-🚧 En desarrollo / Proyecto académico
-Arquitectura escalable preparada para ampliación de funcionalidades.
+Proyecto en desarrollo  
+Orientado a entorno académico / demostración full-stack  
+Escalable y ampliable  
