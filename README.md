@@ -1,7 +1,7 @@
 # 📚 Lectio  
 
 > Plataforma web full-stack para la gestión de contenido de lectura  
-> Arquitectura cliente-servidor desacoplada | API REST | SPA
+> Arquitectura cliente-servidor desacoplada | API REST
 
 ---
 
@@ -11,7 +11,7 @@
 
 El proyecto está construido siguiendo una arquitectura moderna separando:
 
-- 🖥️ **Frontend** → Interfaz de usuario (SPA)
+- 🖥️ **Frontend** → Interfaz de usuario
 - 🔌 **Backend (lectio-api)** → API REST
 - 🗄️ **Base de datos** → Persistencia de la información
 
